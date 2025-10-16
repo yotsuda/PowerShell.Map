@@ -51,14 +51,12 @@
                 <PropertyName>Location</PropertyName>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>
-                  if ($_.Status -eq "Success") { [math]::Round($_.Latitude, 4) } else { "" }
-                </ScriptBlock>
+                <PropertyName>Latitude</PropertyName>
+                <FormatString>F4</FormatString>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>
-                  if ($_.Status -eq "Success") { [math]::Round($_.Longitude, 4) } else { "" }
-                </ScriptBlock>
+                <PropertyName>Longitude</PropertyName>
+                <FormatString>F4</FormatString>
               </TableColumnItem>
               <TableColumnItem>
                 <PropertyName>Label</PropertyName>

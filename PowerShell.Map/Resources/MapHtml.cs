@@ -59,21 +59,6 @@ public static class MapHtml
         let eventSource = null;
         let debugMode = false;
 
-        // Color mapping for circle markers
-        function getMarkerColor(color) {
-            const colors = {
-                'red': '#dc3545',
-                'blue': '#0d6efd',
-                'green': '#198754',
-                'orange': '#fd7e14',
-                'violet': '#6f42c1',
-                'yellow': '#ffc107',
-                'grey': '#6c757d',
-                'black': '#212529',
-                'gold': '#ffd700'
-            };
-            return colors[color?.toLowerCase()] || '#dc3545';
-        }
 
         function log(msg) {
             if (!debugMode) return;
@@ -132,7 +117,7 @@ public static class MapHtml
             // Add multiple markers if provided
             if (state.markers && state.markers.length > 0) {
                 state.markers.forEach(markerData => {
-                    const color = getMarkerColor(markerData.color);
+                    const color = markerData.color;
                     
                     // Use CircleMarker for colored markers
                     const marker = L.circleMarker(

@@ -8,22 +8,22 @@
     Description = 'Interactive map visualization for PowerShell using Leaflet.js and OpenStreetMap'
     PowerShellVersion = '5.1'
     DotNetFrameworkVersion = '4.7.2'
-    CLRVersion = '4.0'
-    
+
     FormatsToProcess = @('PowerShell.Map.Format.ps1xml')
-    
+    CLRVersion = '4.0'
+
     FunctionsToExport = @()
     CmdletsToExport = @('Show-OpenStreetMap', 'Show-OpenStreetMapRoute')
     VariablesToExport = @()
     AliasesToExport = @()
-    
-    HelpInfoURI = 'https://github.com/yoshifumi-tsuda/PowerShell.Map/tree/main/docs'
-    
+
+    HelpInfoURI = 'https://github.com/yotsuda/PowerShell.Map/tree/main/docs'
+
     PrivateData = @{
         PSData = @{
             Tags = @('Map', 'Visualization', 'GIS', 'Leaflet', 'OpenStreetMap', 'Route')
             LicenseUri = ''
-            ProjectUri = 'https://github.com/yoshifumi-tsuda/PowerShell.Map'
+            ProjectUri = 'https://github.com/yotsuda/PowerShell.Map'
             ReleaseNotes = 'v0.1.0: Initial release with Show-OpenStreetMap and Show-OpenStreetMapRoute. Provider-specific cmdlets for future extensibility.'
         }
     }

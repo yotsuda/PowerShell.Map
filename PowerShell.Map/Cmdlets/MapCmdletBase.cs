@@ -1,4 +1,4 @@
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using PowerShell.Map.Server;
 
 namespace PowerShell.Map.Cmdlets;
@@ -74,5 +74,37 @@ public abstract class MapCmdletBase : PSCmdlet
         }
         
         WriteWarning("Failed to update map - please refresh the browser tab");
+    }
+
+    /// <summary>
+    /// 色名または#rgb形式を16進数カラーコードに変換
+    /// </summary>
+    protected string GetMarkerColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return "#dc3545"; // Default: red
+        }
+
+        // #rgb形式ならそのまま返す
+        if (color.StartsWith("#"))
+        {
+            return color;
+        }
+
+        // 色名を変換
+        return color.ToLower() switch
+        {
+            "red" => "#dc3545",
+            "blue" => "#0d6efd",
+            "green" => "#198754",
+            "orange" => "#fd7e14",
+            "violet" => "#6f42c1",
+            "yellow" => "#ffc107",
+            "grey" => "#6c757d",
+            "black" => "#212529",
+            "gold" => "#ffd700",
+            _ => "#dc3545" // Unknown color defaults to red
+        };
     }
 }

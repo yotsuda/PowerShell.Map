@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Linq;
 using System.Management.Automation;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -7,6 +6,7 @@ using PowerShell.Map.Server;
 namespace PowerShell.Map.Cmdlets;
 
 [Cmdlet(VerbsCommon.Show, "OpenStreetMap")]
+[OutputType(typeof(MapMarker))]
 public class ShowOpenStreetMapCmdlet : MapCmdletBase
 {
     // パラメータセット定義
@@ -67,7 +67,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                         Latitude = lat,
                         Longitude = lon,
                         Label = Label,
-                        Color = Color
+                        Color = GetMarkerColor(Color)
                     });
                     WriteVerbose($"Added marker from pipeline: {Label ?? $"{lat},{lon}"}");
                 }
@@ -129,7 +129,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                             Latitude = markerLat,
                             Longitude = markerLon,
                             Label = null,
-                            Color = null,
+                            Color = GetMarkerColor(null),
                             Location = loc,
                             Status = "Success",
                             GeocodingSource = isCoordStr ? "Coordinates" : "Nominatim"
@@ -220,6 +220,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     Latitude = lat,
                     Longitude = lon,
                     Label = Marker,
+                    Color = GetMarkerColor(null),
                     Location = Location[0],
                     Status = "Success",
                     GeocodingSource = isSingleCoord ? "Coordinates" : "Nominatim"
@@ -385,7 +386,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             {
                 Location = location,
                 Label = label,
-                Color = color,
                 Status = "Failed",
                 GeocodingSource = "Unknown"
             };
@@ -396,7 +396,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             Latitude = markerLat,
             Longitude = markerLon,
             Label = label,
-            Color = color,
+            Color = GetMarkerColor(color),
             Location = location,
             Status = "Success",
             GeocodingSource = isCoordinates ? "Coordinates" : "Nominatim"
@@ -432,7 +432,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             {
                 Location = location,
                 Label = label,
-                Color = color,
                 Status = "Failed",
                 GeocodingSource = "Unknown"
             };
@@ -443,7 +442,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             Latitude = markerLat,
             Longitude = markerLon,
             Label = label,
-            Color = color,
+            Color = GetMarkerColor(color),
             Location = location,
             Status = "Success",
             GeocodingSource = isCoordinates ? "Coordinates" : "Nominatim"
@@ -474,7 +473,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 Latitude = markerLat,
                 Longitude = markerLon,
                 Label = label,
-                Color = color
+                Color = GetMarkerColor(color)
             };
         }
 
@@ -491,7 +490,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     Latitude = lat,
                     Longitude = lon,
                     Label = label,
-                    Color = color
+                    Color = GetMarkerColor(color)
                 };
             }
             else
@@ -524,8 +523,8 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             for (int j = i + 1; j < markers.Length; j++)
             {
                 var dist = CalculateDistance(
-                    markers[i].Latitude, markers[i].Longitude,
-                    markers[j].Latitude, markers[j].Longitude);
+                    markers[i].Latitude!.Value, markers[i].Longitude!.Value,
+                    markers[j].Latitude!.Value, markers[j].Longitude!.Value);
                 minDistance = Math.Min(minDistance, dist);
             }
         }
@@ -542,8 +541,9 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         }
 
         // 中央値を計算
-        var latitudes = markers.Select(m => m.Latitude).OrderBy(x => x).ToArray();
-        var longitudes = markers.Select(m => m.Longitude).OrderBy(x => x).ToArray();
+        // 中央値を計算 (all markers here have valid coordinates)
+        var latitudes = markers.Select(m => m.Latitude!.Value).OrderBy(x => x).ToArray();
+        var longitudes = markers.Select(m => m.Longitude!.Value).OrderBy(x => x).ToArray();
         
         double medianLat = latitudes.Length % 2 == 0
             ? (latitudes[latitudes.Length / 2 - 1] + latitudes[latitudes.Length / 2]) / 2
@@ -557,7 +557,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         var markerDistances = markers.Select(m => new
         {
             Marker = m,
-            Distance = CalculateDistance(medianLat, medianLon, m.Latitude, m.Longitude)
+            Distance = CalculateDistance(medianLat, medianLon, m.Latitude!.Value, m.Longitude!.Value)
         }).ToArray();
 
         // 中央値からの距離の中央値を計算
@@ -593,7 +593,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     /// <summary>
     /// 2点間の距離をHaversine公式で計算（単位: km）
     /// </summary>
-    private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+    private static double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
     {
         const double R = 6371; // 地球の半径 (km)
         
@@ -609,7 +609,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         return R * c;
     }
 
-    private double ToRadians(double degrees)
+    private static double ToRadians(double degrees)
     {
         return degrees * Math.PI / 180;
     }

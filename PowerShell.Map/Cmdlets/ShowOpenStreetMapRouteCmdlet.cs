@@ -9,6 +9,7 @@ namespace PowerShell.Map.Cmdlets;
 /// Displays a route between two locations on an interactive map.
 /// </summary>
 [Cmdlet(VerbsCommon.Show, "OpenStreetMapRoute")]
+[OutputType(typeof(MapMarker))]
 public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
 {
     /// <summary>
@@ -52,6 +53,15 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             if (!LocationHelper.TryParseLocation(From!, out double fromLat, out double fromLon,
                 msg => WriteVerbose(msg), msg => WriteWarning(msg)))
             {
+                var failedFromMarker = new MapMarker
+                {
+                    Location = From,
+                    Label = "From",
+                    Status = "Failed",
+                    GeocodingSource = "Unknown"
+                };
+                WriteObject(failedFromMarker);
+                
                 WriteError(new ErrorRecord(
                     new ArgumentException($"Invalid From location: {From}. Use 'latitude,longitude' format or a place name."),
                     "InvalidFromLocation",
@@ -64,6 +74,28 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             if (!LocationHelper.TryParseLocation(To!, out double toLat, out double toLon,
                 msg => WriteVerbose(msg), msg => WriteWarning(msg)))
             {
+                // Output successful From marker
+                var successFromMarker = new MapMarker
+                {
+                    Latitude = fromLat,
+                    Longitude = fromLon,
+                    Label = "From",
+                    Location = From,
+                    Status = "Success",
+                    GeocodingSource = IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
+                };
+                WriteObject(successFromMarker);
+                
+                // Output failed To marker
+                var failedToMarker = new MapMarker
+                {
+                    Location = To,
+                    Label = "To",
+                    Status = "Failed",
+                    GeocodingSource = "Unknown"
+                };
+                WriteObject(failedToMarker);
+                
                 WriteError(new ErrorRecord(
                     new ArgumentException($"Invalid To location: {To}. Use 'latitude,longitude' format or a place name."),
                     "InvalidToLocation",
@@ -92,6 +124,32 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
                 routeCoordinates, Color, Width, DebugMode, From, To));
             WriteVerbose("Map updated with route");
+            
+            // Output From marker
+            var fromMarker = new MapMarker
+            {
+                Latitude = fromLat,
+                Longitude = fromLon,
+                Label = "From",
+                Color = GetMarkerColor(Color),
+                Location = From,
+                Status = "Success",
+                GeocodingSource = IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
+            };
+            WriteObject(fromMarker);
+            
+            // Output To marker
+            var toMarker = new MapMarker
+            {
+                Latitude = toLat,
+                Longitude = toLon,
+                Label = "To",
+                Color = GetMarkerColor(Color),
+                Location = To,
+                Status = "Success",
+                GeocodingSource = IsCoordinateString(To!) ? "Coordinates" : "Nominatim"
+            };
+            WriteObject(toMarker);
         }
         catch (Exception ex)
         {
@@ -150,5 +208,12 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             WriteWarning($"Failed to get route from OSRM: {ex.Message}");
             return null;
         }
+    }
+
+    private bool IsCoordinateString(string location)
+    {
+        return location.Contains(',') && location.Split(',').Length == 2 &&
+            double.TryParse(location.Split(',')[0].Trim(), out _) &&
+            double.TryParse(location.Split(',')[1].Trim(), out _);
     }
 }

@@ -126,11 +126,18 @@ public class MapServer
                 return false;
             }
 
+            // Filter markers with valid coordinates
+            var validCoordMarkers = markers.Where(m => m.Latitude.HasValue && m.Longitude.HasValue);
+            if (!validCoordMarkers.Any())
+            {
+                return false;
+            }
+
             // Calculate center point and bounds
-            var minLat = markers.Min(m => m.Latitude);
-            var maxLat = markers.Max(m => m.Latitude);
-            var minLon = markers.Min(m => m.Longitude);
-            var maxLon = markers.Max(m => m.Longitude);
+            var minLat = validCoordMarkers.Min(m => m.Latitude!.Value);
+            var maxLat = validCoordMarkers.Max(m => m.Latitude!.Value);
+            var minLon = validCoordMarkers.Min(m => m.Longitude!.Value);
+            var maxLon = validCoordMarkers.Max(m => m.Longitude!.Value);
             
             var centerLat = (minLat + maxLat) / 2;
             var centerLon = (minLon + maxLon) / 2;
