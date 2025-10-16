@@ -152,11 +152,5 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
             
             System.Threading.Thread.Sleep(1000);
         }
-        else if (!server.HasConnectedClients)
-        {
-            LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-            WriteVerbose("No SSE clients connected, opening new tab");
-            System.Threading.Thread.Sleep(1000);
-        }
     }
 }
