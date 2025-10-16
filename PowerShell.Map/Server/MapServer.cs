@@ -35,7 +35,12 @@ public class MapServer
         {
             lock (_lock)
             {
-                return _instance ??= new MapServer();
+                if (_instance == null)
+                {
+                    _instance = new MapServer();
+                    _instance.Start(); // Auto-start server on first access
+                }
+                return _instance;
             }
         }
     }
@@ -74,9 +79,9 @@ public class MapServer
         _lastBrowserOpenTime = DateTime.Now;
     }
 
-    public bool Start()
+    public void Start()
     {
-        if (_isRunning) return false;
+        if (_isRunning) return;
 
         try
         {
@@ -88,14 +93,12 @@ public class MapServer
             _isRunning = true;
             
             Task.Run(() => HandleRequests(_cts.Token), _cts.Token);
-            return true; // Successfully started new server
         }
-        catch (HttpListenerException ex) when (ex.ErrorCode == 183 || ex.ErrorCode == 32)
+        catch (HttpListenerException)
         {
-            // Port already in use - another process has the server running
-            // Set running to true so we know the server exists, but dont open browser
-            _isRunning = true;
-            return false; // Server already running in another process
+            // Port already in use by another process/instance
+            // This is OK - just means server is already running
+            _isRunning = true; // Mark as running so we dont try again
         }
     }
 

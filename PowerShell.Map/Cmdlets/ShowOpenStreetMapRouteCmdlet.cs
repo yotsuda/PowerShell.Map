@@ -126,38 +126,13 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
 
     private void StartServerAndOpenBrowser(MapServer server)
     {
-        if (!server.IsRunning)
-        {
-            bool started = server.Start();
-            
-            if (started)
-            {
-                WriteVerbose("Map server started");
-                
-                // Wait for server to be ready to accept connections
-                System.Threading.Thread.Sleep(500);
-                
-                server.NotifyBrowserOpened();
-                LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-                WriteVerbose($"Browser opened at {server.Url}");
-            }
-            else
-            {
-                WriteVerbose("Map server already running in another process");
-                // Check if we need to open a browser anyway
-                if (!server.HasConnectedClients)
-                {
-                    server.NotifyBrowserOpened();
-                    LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-                    WriteVerbose("No SSE clients connected, opened new browser tab");
-                }
-            }
-        }
-        else if (!server.HasConnectedClients)
+        // Server is always running (auto-started on first access)
+        // Just check if we need to open a browser
+        if (!server.HasConnectedClients)
         {
             server.NotifyBrowserOpened();
             LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-            WriteVerbose("No SSE clients connected, opened new browser tab");
+            WriteVerbose("No SSE clients connected, opened browser tab");
         }
         else
         {
