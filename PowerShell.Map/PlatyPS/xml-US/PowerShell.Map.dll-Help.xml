@@ -16,37 +16,14 @@
       <command:syntaxItem>
         <maml:name>Show-OpenStreetMap</maml:name>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
-          <maml:name>Latitude</maml:name>
-          <maml:description>
-            <maml:para>Specifies the latitude coordinate (-90 to 90 degrees). Must be used together with -Longitude parameter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
           <maml:name>Location</maml:name>
           <maml:description>
-            <maml:para>Specifies the location as a place name or coordinate string. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.</maml:para>
+            <maml:para>Specifies one or more locations as place names or coordinate strings. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.</maml:para>
+            <maml:para>When multiple locations are provided, they are displayed as markers on the map, and the map automatically centers and zooms to show all locations.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="none">
-          <maml:name>Longitude</maml:name>
-          <maml:description>
-            <maml:para>Specifies the longitude coordinate (-180 to 180 degrees). Must be used together with -Latitude parameter.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>String[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -75,14 +52,54 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DebugMode</maml:name>
+          <maml:description>
+            <maml:para>Enables debug mode, which displays detailed logging information on the map interface.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="proga">
+          <maml:name>ProgressAction</maml:name>
+          <maml:description>
+            <maml:para>{{ Fill ProgressAction Description }}</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ActionPreference</command:parameterValue>
+          <dev:type>
+            <maml:name>ActionPreference</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Show-OpenStreetMap</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Zoom</maml:name>
+          <maml:description>
+            <maml:para>Specifies the zoom level (1 to 19). Lower numbers show a larger area, higher numbers show more detail. Default is 13.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>13</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
           <maml:name>Markers</maml:name>
           <maml:description>
-            <maml:para>Specifies an array of hashtables containing marker information. Each hashtable should have Location (required), Label (optional), and Color (optional) properties. Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.</maml:para>
+            <maml:para>Specifies an array of markers to display on the map. Accepts multiple formats:</maml:para>
+            <maml:para>- String array : Simple location names (e.g., "Tokyo", "Osaka") - Pipe-delimited strings : "Location|Label|Color" format (e.g., "Tokyo|東京|red") - Hashtable array : Each hashtable should have Location (required), Label (optional), and Color (optional) properties - MapMarker objects : Strongly-typed MapMarker objects</maml:para>
+            <maml:para>Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Hashtable[]</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
-            <maml:name>Hashtable[]</maml:name>
+            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -111,40 +128,103 @@
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
+      <command:syntaxItem>
+        <maml:name>Show-OpenStreetMap</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Zoom</maml:name>
+          <maml:description>
+            <maml:para>Specifies the zoom level (1 to 19). Lower numbers show a larger area, higher numbers show more detail. Default is 13.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>13</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DebugMode</maml:name>
+          <maml:description>
+            <maml:para>Enables debug mode, which displays detailed logging information on the map interface.</maml:para>
+          </maml:description>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>False</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="proga">
+          <maml:name>ProgressAction</maml:name>
+          <maml:description>
+            <maml:para>{{ Fill ProgressAction Description }}</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ActionPreference</command:parameterValue>
+          <dev:type>
+            <maml:name>ActionPreference</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+          <maml:name>Color</maml:name>
+          <maml:description>
+            <maml:para>Specifies the marker color when using pipeline input (e.g., from Import-Csv). Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+          <maml:name>Label</maml:name>
+          <maml:description>
+            <maml:para>Specifies the marker label when using pipeline input (e.g., from Import-Csv). The label will be displayed when clicking on the marker.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+          <maml:name>Latitude</maml:name>
+          <maml:description>
+            <maml:para>Specifies the latitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Longitude parameter. Valid range: -90 to 90 degrees.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+          <maml:name>Longitude</maml:name>
+          <maml:description>
+            <maml:para>Specifies the longitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Latitude parameter. Valid range: -180 to 180 degrees.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
-        <maml:name>Latitude</maml:name>
-        <maml:description>
-          <maml:para>Specifies the latitude coordinate (-90 to 90 degrees). Must be used together with -Longitude parameter.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="1" aliases="none">
-        <maml:name>Longitude</maml:name>
-        <maml:description>
-          <maml:para>Specifies the longitude coordinate (-180 to 180 degrees). Must be used together with -Latitude parameter.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
         <maml:name>Location</maml:name>
         <maml:description>
-          <maml:para>Specifies the location as a place name or coordinate string. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.</maml:para>
+          <maml:para>Specifies one or more locations as place names or coordinate strings. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.</maml:para>
+          <maml:para>When multiple locations are provided, they are displayed as markers on the map, and the map automatically centers and zooms to show all locations.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>String[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -173,14 +253,16 @@
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
         <maml:name>Markers</maml:name>
         <maml:description>
-          <maml:para>Specifies an array of hashtables containing marker information. Each hashtable should have Location (required), Label (optional), and Color (optional) properties. Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.</maml:para>
+          <maml:para>Specifies an array of markers to display on the map. Accepts multiple formats:</maml:para>
+          <maml:para>- String array : Simple location names (e.g., "Tokyo", "Osaka") - Pipe-delimited strings : "Location|Label|Color" format (e.g., "Tokyo|東京|red") - Hashtable array : Each hashtable should have Location (required), Label (optional), and Color (optional) properties - MapMarker objects : Strongly-typed MapMarker objects</maml:para>
+          <maml:para>Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">Hashtable[]</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
         <dev:type>
-          <maml:name>Hashtable[]</maml:name>
+          <maml:name>Object[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -205,6 +287,54 @@
         <command:parameterValue required="true" variableLength="false">ActionPreference</command:parameterValue>
         <dev:type>
           <maml:name>ActionPreference</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+        <maml:name>Color</maml:name>
+        <maml:description>
+          <maml:para>Specifies the marker color when using pipeline input (e.g., from Import-Csv). Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+        <maml:name>Label</maml:name>
+        <maml:description>
+          <maml:para>Specifies the marker label when using pipeline input (e.g., from Import-Csv). The label will be displayed when clicking on the marker.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+        <maml:name>Latitude</maml:name>
+        <maml:description>
+          <maml:para>Specifies the latitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Longitude parameter. Valid range: -90 to 90 degrees.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="none">
+        <maml:name>Longitude</maml:name>
+        <maml:description>
+          <maml:para>Specifies the longitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Latitude parameter. Valid range: -180 to 180 degrees.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -241,28 +371,49 @@
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>------------ Example 1: Display map by coordinates ------------</maml:title>
-        <dev:code>Show-OpenStreetMap -Latitude 35.6586 -Longitude 139.7454 -Zoom 15</dev:code>
+        <maml:title>------------- Example 1: Display map by place name -------------</maml:title>
+        <dev:code>Show-OpenStreetMap -Location "Tokyo Tower"</dev:code>
         <dev:remarks>
-          <maml:para>Displays a map centered on Tokyo Tower with zoom level 15.</maml:para>
+          <maml:para>Uses geocoding to find "Tokyo Tower" and displays the map at that location.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>------------- Example 2: Display map by place name -------------</maml:title>
-        <dev:code>Show-OpenStreetMap -Location "Osaka Castle"</dev:code>
+        <maml:title>----------- Example 2: Display map with coordinates -----------</maml:title>
+        <dev:code>Show-OpenStreetMap -Location "35.6586,139.7454" -Zoom 15</dev:code>
         <dev:remarks>
-          <maml:para>Uses geocoding to find "Osaka Castle" and displays the map at that location.</maml:para>
+          <maml:para>Displays a map centered on Tokyo Tower (using coordinate string) with zoom level 15.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>------------- Example 3: Display map with a marker -------------</maml:title>
-        <dev:code>Show-OpenStreetMap -Location "Tokyo Tower" -Marker "東京タワー"</dev:code>
+        <maml:title>------- Example 3: Display multiple locations as markers -------</maml:title>
+        <dev:code>Show-OpenStreetMap -Location "Tokyo", "Osaka", "Kyoto"</dev:code>
         <dev:remarks>
-          <maml:para>Displays a map with a marker labeled "東京タワー" at Tokyo Tower.</maml:para>
+          <maml:para>Displays a map with three markers at different cities. The map automatically centers and zooms to show all markers.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>------------- Example 4: Display multiple markers -------------</maml:title>
+        <maml:title>--------- Example 4: Display map with a labeled marker ---------</maml:title>
+        <dev:code>Show-OpenStreetMap -Location "Tokyo Tower" -Marker "🗼 東京タワー"</dev:code>
+        <dev:remarks>
+          <maml:para>Displays a map with a marker labeled "🗼 東京タワー" at Tokyo Tower.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>----- Example 5: Display markers using simple string array -----</maml:title>
+        <dev:code>Show-OpenStreetMap -Markers "Tokyo", "Osaka", "Kyoto", "Hiroshima"</dev:code>
+        <dev:remarks>
+          <maml:para>Displays markers at multiple cities using a simple string array.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Example 6: Display markers with labels and colors (pipe-delimited format)</maml:title>
+        <dev:code>Show-OpenStreetMap -Markers "Tokyo|🗼 東京タワー|red", "Osaka|🏯 大阪城|blue", "Kyoto|⛩️ 清水寺|gold"</dev:code>
+        <dev:remarks>
+          <maml:para>Displays colored markers with labels using "Location|Label|Color" format.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>------- Example 7: Display markers using hashtable array -------</maml:title>
         <dev:code>$markers = @(
     @{Location="Tokyo"; Label="Tokyo"; Color="red"}
     @{Location="Osaka"; Label="Osaka"; Color="blue"}
@@ -270,25 +421,32 @@
 )
 Show-OpenStreetMap -Markers $markers</dev:code>
         <dev:remarks>
-          <maml:para>Displays a map with three colored markers at different cities. The map automatically centers and zooms to show all markers.</maml:para>
+          <maml:para>Displays a map with three colored markers at different cities using hashtable format.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>------------- Example 5: Display markers from CSV -------------</maml:title>
+        <maml:title>------ Example 8: Display markers from CSV using pipeline ------</maml:title>
+        <dev:code>Import-Csv locations.csv | Show-OpenStreetMap</dev:code>
+        <dev:remarks>
+          <maml:para>Imports locations from a CSV file (with Latitude, Longitude, Label, Color columns) and displays them as markers on the map using pipeline.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>-------- Example 9: Create CSV data and display markers --------</maml:title>
         <dev:code>$locations = Import-Csv locations.csv
 $markers = $locations | ForEach-Object {
-    @{Location="$($_.Lat),$($_.Lon)"; Label=$_.Name; Color=$_.Color}
+    @{Location="$($_.Latitude),$($_.Longitude)"; Label=$_.Name; Color=$_.Color}
 }
 Show-OpenStreetMap -Markers $markers</dev:code>
         <dev:remarks>
-          <maml:para>Imports locations from a CSV file and displays them as markers on the map.</maml:para>
+          <maml:para>Imports locations from a CSV file, converts to hashtable format, and displays as markers.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version:</maml:linkText>
-        <maml:uri>https://github.com/yoshifumi-tsuda/PowerShell.Map</maml:uri>
+        <maml:uri>https://github.com/yotsuda/PowerShell.Map</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Show-OpenStreetMapRoute</maml:linkText>
@@ -544,7 +702,7 @@ $routes | ForEach-Object {
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version:</maml:linkText>
-        <maml:uri>https://github.com/yoshifumi-tsuda/PowerShell.Map</maml:uri>
+        <maml:uri>https://github.com/yotsuda/PowerShell.Map</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Show-OpenStreetMap</maml:linkText>

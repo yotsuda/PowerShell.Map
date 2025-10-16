@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Linq;
 using System.Management.Automation;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -104,10 +105,22 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     var markerList = new List<MapMarker>();
                     foreach (var loc in Location)
                     {
+                        // 座標文字列かどうかチェック
+                        bool isCoordStr = loc.Contains(',') && 
+                            loc.Split(',').Length == 2 &&
+                            double.TryParse(loc.Split(',')[0].Trim(), out _) &&
+                            double.TryParse(loc.Split(',')[1].Trim(), out _);
+
                         if (!LocationHelper.TryParseLocation(loc, out double markerLat, out double markerLon,
                             msg => WriteVerbose(msg), msg => WriteWarning(msg)))
                         {
                             WriteWarning($"Could not parse location: {loc}, skipping");
+                            markerList.Add(new MapMarker
+                            {
+                                Location = loc,
+                                Status = "Failed",
+                                GeocodingSource = "Unknown"
+                            });
                             continue;
                         }
 
@@ -116,7 +129,10 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                             Latitude = markerLat,
                             Longitude = markerLon,
                             Label = null,
-                            Color = null
+                            Color = null,
+                            Location = loc,
+                            Status = "Success",
+                            GeocodingSource = isCoordStr ? "Coordinates" : "Nominatim"
                         });
                         WriteVerbose($"Added marker: {loc} at {markerLat}, {markerLon}");
                     }
@@ -131,15 +147,61 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                         return;
                     }
 
-                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(markerList.ToArray(), Zoom, DebugMode));
-                    WriteVerbose($"Map updated with {markerList.Count} markers");
+                    // 成功したマーカーのみを地図に表示対象とする
+                    var successMarkers = markerList.Where(m => m.Status == "Success").ToArray();
+                    
+                    // 外れ値検出 (2個以上のマーカーがある場合のみ)
+                    MapMarker[] validMarkers;
+                    if (successMarkers.Length >= 2)
+                    {
+                        var (valid, outliers) = DetectOutliers(successMarkers);
+                        validMarkers = valid;
+                        
+                        // 外れ値について警告
+                        foreach (var outlier in outliers)
+                        {
+                            outlier.Status = "Outlier";
+                            var locationInfo = outlier.Label ?? outlier.Location ?? "Unknown";
+                            WriteWarning($"Marker '{locationInfo}' is too far from other markers (lat={outlier.Latitude:F4}, lon={outlier.Longitude:F4}) and will be excluded from the map.");
+                        }
+                    }
+                    else
+                    {
+                        validMarkers = successMarkers;
+                    }
+                    
+                    if (validMarkers.Length > 0)
+                    {
+                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode));
+                        WriteVerbose($"Map updated with {validMarkers.Length} markers");
+                    }
+                    
+                    // すべてのマーカー情報を出力
+                    foreach (var m in markerList)
+                    {
+                        WriteObject(m);
+                    }
                     return;
                 }
 
                 // 単一の場所が指定された場合
+                bool isSingleCoord = Location[0].Contains(',') && 
+                    Location[0].Split(',').Length == 2 &&
+                    double.TryParse(Location[0].Split(',')[0].Trim(), out _) &&
+                    double.TryParse(Location[0].Split(',')[1].Trim(), out _);
+
                 if (!LocationHelper.TryParseLocation(Location[0], out double lat, out double lon,
                     msg => WriteVerbose(msg), msg => WriteWarning(msg)))
                 {
+                    var failedMarker = new MapMarker
+                    {
+                        Location = Location[0],
+                        Label = Marker,
+                        Status = "Failed",
+                        GeocodingSource = "Unknown"
+                    };
+                    WriteObject(failedMarker);
+                    
                     WriteError(new ErrorRecord(
                         new ArgumentException($"Invalid location format: {Location[0]}. Use 'latitude,longitude' format or a place name."),
                         "InvalidLocation",
@@ -151,6 +213,18 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 int zoom = Zoom ?? 13;
                 ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, Marker, DebugMode));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
+                
+                // マーカー情報を出力
+                var resultMarker = new MapMarker
+                {
+                    Latitude = lat,
+                    Longitude = lon,
+                    Label = Marker,
+                    Location = Location[0],
+                    Status = "Success",
+                    GeocodingSource = isSingleCoord ? "Coordinates" : "Nominatim"
+                };
+                WriteObject(resultMarker);
                 return;
             }
 
@@ -185,8 +259,41 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             try
             {
                 var server = MapServer.Instance;
-                ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(_pipelineMarkers.ToArray(), Zoom, DebugMode));
-                WriteVerbose($"Map updated with {_pipelineMarkers.Count} markers from pipeline");
+                
+                // 成功したマーカーのみを地図に表示対象とする
+                var successMarkers = _pipelineMarkers.Where(m => m.Status == "Success").ToArray();
+                
+                // 外れ値検出 (2個以上のマーカーがある場合のみ)
+                MapMarker[] validMarkers;
+                if (successMarkers.Length >= 2)
+                {
+                    var (valid, outliers) = DetectOutliers(successMarkers);
+                    validMarkers = valid;
+                    
+                    // 外れ値について警告
+                    foreach (var outlier in outliers)
+                    {
+                        outlier.Status = "Outlier";
+                        var locationInfo = outlier.Label ?? outlier.Location ?? "Unknown";
+                        WriteWarning($"Marker '{locationInfo}' is too far from other markers (lat={outlier.Latitude:F4}, lon={outlier.Longitude:F4}) and will be excluded from the map.");
+                    }
+                }
+                else
+                {
+                    validMarkers = successMarkers;
+                }
+                
+                if (validMarkers.Length > 0)
+                {
+                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode));
+                    WriteVerbose($"Map updated with {validMarkers.Length} markers from pipeline");
+                }
+                
+                // 常にマーカー情報をパイプラインに出力
+                foreach (var marker in _pipelineMarkers)
+                {
+                    WriteObject(marker);
+                }
             }
             catch (Exception ex)
             {
@@ -264,11 +371,24 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             return null;
         }
 
+        // 座標文字列かどうかチェック
+        bool isCoordinates = location.Contains(',') && 
+            location.Split(',').Length == 2 &&
+            double.TryParse(location.Split(',')[0].Trim(), out _) &&
+            double.TryParse(location.Split(',')[1].Trim(), out _);
+
         if (!LocationHelper.TryParseLocation(location, out double markerLat, out double markerLon,
             msg => WriteVerbose(msg), msg => WriteWarning(msg)))
         {
             WriteWarning($"Could not parse location: {location}, skipping");
-            return null;
+            return new MapMarker
+            {
+                Location = location,
+                Label = label,
+                Color = color,
+                Status = "Failed",
+                GeocodingSource = "Unknown"
+            };
         }
 
         return new MapMarker
@@ -276,7 +396,10 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             Latitude = markerLat,
             Longitude = markerLon,
             Label = label,
-            Color = color
+            Color = color,
+            Location = location,
+            Status = "Success",
+            GeocodingSource = isCoordinates ? "Coordinates" : "Nominatim"
         };
     }
 
@@ -295,11 +418,24 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             return null;
         }
 
+        // 座標文字列かどうかチェック
+        bool isCoordinates = location.Contains(',') && 
+            location.Split(',').Length == 2 &&
+            double.TryParse(location.Split(',')[0].Trim(), out _) &&
+            double.TryParse(location.Split(',')[1].Trim(), out _);
+
         if (!LocationHelper.TryParseLocation(location, out double markerLat, out double markerLon,
             msg => WriteVerbose(msg), msg => WriteWarning(msg)))
         {
             WriteWarning($"Could not parse location: {location}, skipping");
-            return null;
+            return new MapMarker
+            {
+                Location = location,
+                Label = label,
+                Color = color,
+                Status = "Failed",
+                GeocodingSource = "Unknown"
+            };
         }
 
         return new MapMarker
@@ -307,7 +443,10 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             Latitude = markerLat,
             Longitude = markerLon,
             Label = label,
-            Color = color
+            Color = color,
+            Location = location,
+            Status = "Success",
+            GeocodingSource = isCoordinates ? "Coordinates" : "Nominatim"
         };
     }
 
@@ -364,5 +503,114 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
 
         WriteWarning("Marker without Location or Latitude/Longitude properties, skipping");
         return null;
+    }
+
+    /// <summary>
+    /// 外れ値を検出する。マーカー群の中心から極端に離れているマーカーを除外する。
+    /// </summary>
+    /// <param name="markers">成功したマーカーの配列</param>
+    /// <returns>有効なマーカーと外れ値のタプル</returns>
+    private (MapMarker[] valid, MapMarker[] outliers) DetectOutliers(MapMarker[] markers)
+    {
+        if (markers.Length < 2)
+        {
+            return (markers, Array.Empty<MapMarker>());
+        }
+
+        // 最も近い2つのマーカー間の距離を計算（クラスタリングの密度チェック）
+        double minDistance = double.MaxValue;
+        for (int i = 0; i < markers.Length; i++)
+        {
+            for (int j = i + 1; j < markers.Length; j++)
+            {
+                var dist = CalculateDistance(
+                    markers[i].Latitude, markers[i].Longitude,
+                    markers[j].Latitude, markers[j].Longitude);
+                minDistance = Math.Min(minDistance, dist);
+            }
+        }
+
+        // マーカーが広範囲に散らばっている場合の特別処理
+        // 最も近いマーカー同士が1000km以上離れている場合
+        if (minDistance > 1000)
+        {
+            WriteWarning($"Markers are very far apart (minimum distance: {minDistance:F0}km). Only the first marker will be displayed on the map. Please verify your input data.");
+            // 先頭の1つだけを有効として返し、残りを外れ値とする
+            var firstMarker = new[] { markers[0] };
+            var restMarkers = markers.Skip(1).ToArray();
+            return (firstMarker, restMarkers);
+        }
+
+        // 中央値を計算
+        var latitudes = markers.Select(m => m.Latitude).OrderBy(x => x).ToArray();
+        var longitudes = markers.Select(m => m.Longitude).OrderBy(x => x).ToArray();
+        
+        double medianLat = latitudes.Length % 2 == 0
+            ? (latitudes[latitudes.Length / 2 - 1] + latitudes[latitudes.Length / 2]) / 2
+            : latitudes[latitudes.Length / 2];
+            
+        double medianLon = longitudes.Length % 2 == 0
+            ? (longitudes[longitudes.Length / 2 - 1] + longitudes[longitudes.Length / 2]) / 2
+            : longitudes[longitudes.Length / 2];
+
+        // 各マーカーと中央値との距離を計算
+        var markerDistances = markers.Select(m => new
+        {
+            Marker = m,
+            Distance = CalculateDistance(medianLat, medianLon, m.Latitude, m.Longitude)
+        }).ToArray();
+
+        // 中央値からの距離の中央値を計算
+        var distances = markerDistances.Select(md => md.Distance).OrderBy(d => d).ToArray();
+        double medianDistance = distances.Length % 2 == 0
+            ? (distances[distances.Length / 2 - 1] + distances[distances.Length / 2]) / 2
+            : distances[distances.Length / 2];
+
+        // しきい値: 中央値距離の5倍、または最低500km
+        // より厳しい基準に変更（10倍 → 5倍）
+        double threshold = Math.Max(medianDistance * 5, 500);
+
+        // 外れ値を検出
+        var validMarkers = new List<MapMarker>();
+        var outlierMarkers = new List<MapMarker>();
+
+        foreach (var md in markerDistances)
+        {
+            if (md.Distance > threshold)
+            {
+                outlierMarkers.Add(md.Marker);
+                WriteVerbose($"Outlier detected: {md.Marker.Location} (distance: {md.Distance:F1}km from median, threshold: {threshold:F1}km)");
+            }
+            else
+            {
+                validMarkers.Add(md.Marker);
+            }
+        }
+
+        return (validMarkers.ToArray(), outlierMarkers.ToArray());
+    }
+
+    /// <summary>
+    /// 2点間の距離をHaversine公式で計算（単位: km）
+    /// </summary>
+    private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371; // 地球の半径 (km)
+        
+        var dLat = ToRadians(lat2 - lat1);
+        var dLon = ToRadians(lon2 - lon1);
+        
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        
+        return R * c;
+    }
+
+    private double ToRadians(double degrees)
+    {
+        return degrees * Math.PI / 180;
     }
 }

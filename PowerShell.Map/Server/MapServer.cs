@@ -31,6 +31,14 @@ public class MapServer
     public string Url { get; private set; } = "http://localhost:8765/";
     public DateTime LastClientAccessTime => _lastClientAccessTime;
 
+    public bool HasActiveClients()
+    {
+        lock (_lock)
+        {
+            return _sseClients.Count > 0;
+        }
+    }
+
     public bool IsBrowserWindowOpen()
     {
         // Check if any browser window has "PowerShell.Map" in its title

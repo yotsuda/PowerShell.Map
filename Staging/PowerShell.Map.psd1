@@ -10,6 +10,8 @@
     DotNetFrameworkVersion = '4.7.2'
     CLRVersion = '4.0'
     
+    FormatsToProcess = @('PowerShell.Map.Format.ps1xml')
+    
     FunctionsToExport = @()
     CmdletsToExport = @('Show-OpenStreetMap', 'Show-OpenStreetMapRoute')
     VariablesToExport = @()

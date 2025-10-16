@@ -9,55 +9,70 @@ public abstract class MapCmdletBase : PSCmdlet
 
     protected void ExecuteWithRetry(MapServer server, Func<bool> updateAction)
     {
-        // Check if browser window exists first
         bool windowExists = server.IsBrowserWindowOpen();
         WriteVerbose($"Browser window check: {(windowExists ? "exists" : "not found")}");
         
-        // Try to update the map first
-        bool success = updateAction();
-        WriteVerbose($"First update attempt: {(success ? "succeeded" : "failed")}");
-
-        // If window doesn't exist, open browser regardless of updateAction result
+        // Case 1: No window - Open new tab and poll for SSE connection
         if (!windowExists)
         {
-            WriteVerbose("No browser window detected, opening browser");
+            WriteVerbose("Opening new browser tab...");
             Helpers.LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-            System.Threading.Thread.Sleep(BrowserConnectionWaitMs);
-            success = updateAction();
-            WriteVerbose($"Update after opening browser: {(success ? "succeeded" : "failed")}");
             
-            if (!success)
+            // Poll for SSE connection with short timeout intervals
+            bool connected = false;
+            const int maxAttempts = 5;
+            for (int i = 0; i < maxAttempts; i++)
             {
-                WriteVerbose("Still no connection after opening browser, retrying once more");
-                System.Threading.Thread.Sleep(BrowserConnectionWaitMs);
-                success = updateAction();
-                WriteVerbose($"Final retry: {(success ? "succeeded" : "failed")}");
+                System.Threading.Thread.Sleep(1000); // Check every 1 second
+                if (server.HasActiveClients())
+                {
+                    connected = true;
+                    WriteVerbose($"SSE connected after {i + 1} attempt(s)");
+                    break;
+                }
+                WriteVerbose($"Waiting for SSE connection... (attempt {i + 1}/{maxAttempts})");
             }
-        }
-        // If window exists but update failed, wait and retry
-        else if (!success)
-        {
-            WriteVerbose("Browser window exists but SSE not connected yet, waiting...");
-            System.Threading.Thread.Sleep(BrowserConnectionWaitMs);
-            success = updateAction();
-            WriteVerbose($"Update after waiting: {(success ? "succeeded" : "failed")}");
             
-            if (!success)
+            if (!connected)
             {
-                WriteVerbose("Still no connection, retrying once more");
-                System.Threading.Thread.Sleep(BrowserConnectionWaitMs);
-                success = updateAction();
-                WriteVerbose($"Final retry: {(success ? "succeeded" : "failed")}");
+                WriteWarning("Failed to establish SSE connection - browser may not have opened correctly");
+                return;
             }
+            
+            // After SSE connection established, update the map
+            if (!updateAction())
+            {
+                WriteWarning("Failed to update map despite SSE connection");
+            }
+            else
+            {
+                WriteVerbose("Map updated successfully");
+            }
+            return;
         }
         
-        if (!success)
-        {
-            WriteWarning("Failed to update map - browser may not have opened correctly.");
-        }
-        else
+        // Case 2: Window exists - No SSE check needed, attempt update immediately
+        WriteVerbose("Browser window exists, attempting update...");
+        if (updateAction())
         {
             WriteVerbose("Map updated successfully");
+            return;
         }
+        
+        // If failed, retry with short intervals
+        WriteVerbose("Update failed, retrying...");
+        const int maxRetries = 3;
+        for (int i = 0; i < maxRetries; i++)
+        {
+            System.Threading.Thread.Sleep(1000);
+            if (updateAction())
+            {
+                WriteVerbose($"Map updated successfully after {i + 1} retry(ies)");
+                return;
+            }
+            WriteVerbose($"Retry {i + 1}/{maxRetries} failed");
+        }
+        
+        WriteWarning("Failed to update map - please refresh the browser tab");
     }
 }
