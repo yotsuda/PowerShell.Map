@@ -1,7 +1,7 @@
 ---
 external help file: PowerShell.Map.dll-Help.xml
 Module Name: PowerShell.Map
-online version: https://github.com/yoshifumi-tsuda/PowerShell.Map
+online version: https://github.com/yotsuda/PowerShell.Map
 schema: 2.0.0
 ---
 
@@ -179,6 +179,7 @@ This cmdlet does not generate any output.
 - The browser tab is automatically opened when the server starts
 
 ## RELATED LINKS
+
 [Show-OpenStreetMap](Show-OpenStreetMap.md)
 [OSRM API](http://project-osrm.org/)
 [OpenStreetMap](https://www.openstreetmap.org/)

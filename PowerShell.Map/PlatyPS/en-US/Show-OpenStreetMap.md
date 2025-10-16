@@ -1,7 +1,7 @@
 ---
 external help file: PowerShell.Map.dll-Help.xml
 Module Name: PowerShell.Map
-online version: https://github.com/yoshifumi-tsuda/PowerShell.Map
+online version: https://github.com/yotsuda/PowerShell.Map
 schema: 2.0.0
 ---
 
@@ -12,10 +12,22 @@ Displays an interactive map using OpenStreetMap and Leaflet.js in the default br
 
 ## SYNTAX
 
+### Location
 ```
-Show-OpenStreetMap [[-Latitude] <Double>] [[-Longitude] <Double>] [[-Location] <String>] [-Zoom <Int32>]
- [-Marker <String>] [-Markers <Hashtable[]>] [-DebugMode] [-ProgressAction <ActionPreference>]
+Show-OpenStreetMap [[-Location] <String[]>] [-Marker <String>] [-Zoom <Int32>] [-DebugMode]
+ [-ProgressAction <ActionPreference>] [<CommonParameters>]
+```
+
+### Markers
+```
+Show-OpenStreetMap -Markers <Object[]> [-Zoom <Int32>] [-DebugMode] [-ProgressAction <ActionPreference>]
  [<CommonParameters>]
+```
+
+### Pipeline
+```
+Show-OpenStreetMap -Latitude <String> -Longitude <String> [-Label <String>] [-Color <String>] [-Zoom <Int32>]
+ [-DebugMode] [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -23,28 +35,49 @@ The Show-OpenStreetMap cmdlet displays an interactive map in your default web br
 
 ## EXAMPLES
 
-### Example 1: Display map by coordinates
+### Example 1: Display map by place name
 ```powershell
-Show-OpenStreetMap -Latitude 35.6586 -Longitude 139.7454 -Zoom 15
+Show-OpenStreetMap -Location "Tokyo Tower"
 ```
 
-Displays a map centered on Tokyo Tower with zoom level 15.
+Uses geocoding to find "Tokyo Tower" and displays the map at that location.
 
-### Example 2: Display map by place name
+### Example 2: Display map with coordinates
 ```powershell
-Show-OpenStreetMap -Location "Osaka Castle"
+Show-OpenStreetMap -Location "35.6586,139.7454" -Zoom 15
 ```
 
-Uses geocoding to find "Osaka Castle" and displays the map at that location.
+Displays a map centered on Tokyo Tower (using coordinate string) with zoom level 15.
 
-### Example 3: Display map with a marker
+### Example 3: Display multiple locations as markers
 ```powershell
-Show-OpenStreetMap -Location "Tokyo Tower" -Marker "東京タワー"
+Show-OpenStreetMap -Location "Tokyo", "Osaka", "Kyoto"
 ```
 
-Displays a map with a marker labeled "東京タワー" at Tokyo Tower.
+Displays a map with three markers at different cities. The map automatically centers and zooms to show all markers.
 
-### Example 4: Display multiple markers
+### Example 4: Display map with a labeled marker
+```powershell
+Show-OpenStreetMap -Location "Tokyo Tower" -Marker "🗼 東京タワー"
+```
+
+Displays a map with a marker labeled "🗼 東京タワー" at Tokyo Tower.
+
+### Example 5: Display markers using simple string array
+```powershell
+Show-OpenStreetMap -Markers "Tokyo", "Osaka", "Kyoto", "Hiroshima"
+```
+
+Displays markers at multiple cities using a simple string array.
+
+### Example 6: Display markers with labels and colors (pipe-delimited format)
+```powershell
+Show-OpenStreetMap -Markers "Tokyo|🗼 東京タワー|red", "Osaka|🏯 大阪城|blue", "Kyoto|⛩️ 清水寺|gold"
+```
+
+Displays colored markers with labels using "Location|Label|Color" format.
+
+### Example 7: Display markers using hashtable array
 ```powershell
 $markers = @(
     @{Location="Tokyo"; Label="Tokyo"; Color="red"}
@@ -54,57 +87,36 @@ $markers = @(
 Show-OpenStreetMap -Markers $markers
 ```
 
-Displays a map with three colored markers at different cities. The map automatically centers and zooms to show all markers.
+Displays a map with three colored markers at different cities using hashtable format.
 
-### Example 5: Display markers from CSV
+### Example 8: Display markers from CSV using pipeline
+```powershell
+Import-Csv locations.csv | Show-OpenStreetMap
+```
+
+Imports locations from a CSV file (with Latitude, Longitude, Label, Color columns) and displays them as markers on the map using pipeline.
+
+### Example 9: Create CSV data and display markers
 ```powershell
 $locations = Import-Csv locations.csv
 $markers = $locations | ForEach-Object {
-    @{Location="$($_.Lat),$($_.Lon)"; Label=$_.Name; Color=$_.Color}
+    @{Location="$($_.Latitude),$($_.Longitude)"; Label=$_.Name; Color=$_.Color}
 }
 Show-OpenStreetMap -Markers $markers
 ```
 
-Imports locations from a CSV file and displays them as markers on the map.
+Imports locations from a CSV file, converts to hashtable format, and displays as markers.
 
 ## PARAMETERS
 
-### -Latitude
-Specifies the latitude coordinate (-90 to 90 degrees). Must be used together with -Longitude parameter.
-
-```yaml
-Type: Double
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Longitude
-Specifies the longitude coordinate (-180 to 180 degrees). Must be used together with -Latitude parameter.
-
-```yaml
-Type: Double
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Location
-Specifies the location as a place name or coordinate string. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.
+Specifies one or more locations as place names or coordinate strings. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.
+
+When multiple locations are provided, they are displayed as markers on the map, and the map automatically centers and zooms to show all locations.
 
 ```yaml
-Type: String
-Parameter Sets: (All)
+Type: String[]
+Parameter Sets: Location
 Aliases:
 
 Required: False
@@ -134,7 +146,7 @@ Specifies a label for a single marker to be displayed at the specified location.
 
 ```yaml
 Type: String
-Parameter Sets: (All)
+Parameter Sets: Location
 Aliases:
 
 Required: False
@@ -145,14 +157,21 @@ Accept wildcard characters: False
 ```
 
 ### -Markers
-Specifies an array of hashtables containing marker information. Each hashtable should have Location (required), Label (optional), and Color (optional) properties. Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.
+Specifies an array of markers to display on the map. Accepts multiple formats:
+
+- **String array**: Simple location names (e.g., "Tokyo", "Osaka")
+- **Pipe-delimited strings**: "Location|Label|Color" format (e.g., "Tokyo|東京|red")
+- **Hashtable array**: Each hashtable should have Location (required), Label (optional), and Color (optional) properties
+- **MapMarker objects**: Strongly-typed MapMarker objects
+
+Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.
 
 ```yaml
-Type: Hashtable[]
-Parameter Sets: (All)
+Type: Object[]
+Parameter Sets: Markers
 Aliases:
 
-Required: False
+Required: True
 Position: Named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -189,6 +208,66 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Color
+Specifies the marker color when using pipeline input (e.g., from Import-Csv). Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.
+
+```yaml
+Type: String
+Parameter Sets: Pipeline
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Label
+Specifies the marker label when using pipeline input (e.g., from Import-Csv). The label will be displayed when clicking on the marker.
+
+```yaml
+Type: String
+Parameter Sets: Pipeline
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Latitude
+Specifies the latitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Longitude parameter. Valid range: -90 to 90 degrees.
+
+```yaml
+Type: String
+Parameter Sets: Pipeline
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Longitude
+Specifies the longitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Latitude parameter. Valid range: -180 to 180 degrees.
+
+```yaml
+Type: String
+Parameter Sets: Pipeline
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
@@ -210,6 +289,7 @@ This cmdlet does not generate any output.
 - The browser tab is automatically opened when the server starts
 
 ## RELATED LINKS
+
 [Show-OpenStreetMapRoute](Show-OpenStreetMapRoute.md)
 [OpenStreetMap](https://www.openstreetmap.org/)
 [Leaflet.js](https://leafletjs.com/)

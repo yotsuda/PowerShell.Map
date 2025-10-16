@@ -12,7 +12,7 @@
     Builds and deploys help files
 
 .NOTES
-    Requires: platyPS module (Install-Module -Name platyPS)
+    Requires: PlatyPS module (Install-Module -Name PlatyPS)
 #>
 
 [CmdletBinding()]
@@ -25,11 +25,11 @@ $mdPath = Join-Path $scriptRoot "en-US"
 $xmlOutputPath = Join-Path $scriptRoot "xml-US"
 $projectRoot = Split-Path $scriptRoot -Parent
 $binPath = Join-Path $projectRoot "bin"
-$moduleInstallPath = "C:\Program Files\PowerShell\7\Modules\PowerShell.Map"
 $helpFileName = "PowerShell.Map.dll-Help.xml"
 $sourceHelpFile = Join-Path $xmlOutputPath $helpFileName
 
 Write-Host "=== PowerShell.Map Help Build ===" -ForegroundColor Cyan
+Write-Host ""
 
 # Check if markdown files exist
 if (-not (Test-Path $mdPath)) {
@@ -43,18 +43,24 @@ if ($mdFiles.Count -eq 0) {
     exit 1
 }
 
-Write-Host "[OK] Found $($mdFiles.Count) markdown files" -ForegroundColor Green
+Write-Host "[✓] Found $($mdFiles.Count) markdown files:" -ForegroundColor Green
+foreach ($file in $mdFiles) {
+    Write-Host "    - $($file.Name)" -ForegroundColor Gray
+}
+Write-Host ""
 
-# Check for platyPS module
-if (-not (Get-Module -Name platyPS -ListAvailable)) {
-    Write-Error "platyPS module not found. Install it with: Install-Module -Name platyPS"
+# Check for PlatyPS module
+if (-not (Get-Module -Name PlatyPS -ListAvailable)) {
+    Write-Error "PlatyPS module not found. Install it with: Install-Module -Name PlatyPS"
     exit 1
 }
 
-Import-Module platyPS -ErrorAction Stop
+Import-Module PlatyPS -ErrorAction Stop
+Write-Host "[✓] PlatyPS module loaded" -ForegroundColor Green
+Write-Host ""
 
 # Generate help XML
-Write-Host "`nBuilding help file..." -ForegroundColor Cyan
+Write-Host "Building help file..." -ForegroundColor Yellow
 
 try {
     # Create output directory
@@ -63,7 +69,7 @@ try {
     }
     
     # Generate help XML to xml-US directory
-    New-ExternalHelp -Path $mdPath -OutputPath $xmlOutputPath -Force -ErrorAction SilentlyContinue | Out-Null
+    New-ExternalHelp -Path $mdPath -OutputPath $xmlOutputPath -Force -ErrorAction Stop | Out-Null
     
     if (-not (Test-Path $sourceHelpFile)) {
         Write-Error "Help file was not created: $sourceHelpFile"
@@ -71,45 +77,72 @@ try {
     }
     
     $xmlFile = Get-Item $sourceHelpFile
-    Write-Host "[OK] Help file generated: $helpFileName" -ForegroundColor Green
-    Write-Host "     Output: PlatyPS\xml-US\$helpFileName" -ForegroundColor Gray
-    Write-Host "     Size: $([math]::Round($xmlFile.Length / 1KB, 2)) KB" -ForegroundColor Gray
+    Write-Host "[✓] Help file generated:" -ForegroundColor Green
+    Write-Host "    File: $helpFileName" -ForegroundColor Gray
+    Write-Host "    Path: PlatyPS\xml-US\" -ForegroundColor Gray
+    Write-Host "    Size: $([math]::Round($xmlFile.Length / 1KB, 2)) KB" -ForegroundColor Gray
+    Write-Host ""
 } catch {
     Write-Error "Failed to build help file: $_"
     exit 1
 }
 
 # Copy to bin directories
-Write-Host "`nCopying to build output..." -ForegroundColor Cyan
+Write-Host "Copying to build outputs..." -ForegroundColor Yellow
 $copiedCount = 0
 
 foreach ($config in @("Debug", "Release")) {
     $targetPath = Join-Path $binPath "$config\net9.0\en-US"
     
-    if (-not (Test-Path $targetPath)) {
-        New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
+    if (Test-Path (Split-Path $targetPath -Parent)) {
+        if (-not (Test-Path $targetPath)) {
+            New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
+        }
+        
+        $destination = Join-Path $targetPath $helpFileName
+        Copy-Item -Path $sourceHelpFile -Destination $destination -Force
+        $copiedCount++
+        Write-Host "    [✓] $config/net9.0/en-US/$helpFileName" -ForegroundColor Gray
+    } else {
+        Write-Host "    [SKIP] $config build not found" -ForegroundColor DarkGray
     }
+}
+
+if ($copiedCount -eq 0) {
+    Write-Warning "No build outputs found. Build the project first."
+}
+Write-Host ""
+
+# Deploy help file to PowerShell modules directory (if module is installed)
+Write-Host "Deploying to installed module..." -ForegroundColor Yellow
+
+$module = Get-Module -Name PowerShell.Map -ListAvailable | Select-Object -First 1
+if ($module) {
+    $moduleBasePath = Split-Path $module.Path -Parent
+    $moduleHelpPath = Join-Path $moduleBasePath "en-US"
     
-    $destination = Join-Path $targetPath $helpFileName
-    Copy-Item -Path $sourceHelpFile -Destination $destination -Force
-    $copiedCount++
-    Write-Host "  [COPY] $config/net9.0/en-US/$helpFileName" -ForegroundColor Gray
+    if (-not (Test-Path $moduleHelpPath)) {
+        New-Item -Path $moduleHelpPath -ItemType Directory -Force | Out-Null
+    }
+
+    $destinationHelpFile = Join-Path $moduleHelpPath $helpFileName
+    Copy-Item -Path $sourceHelpFile -Destination $destinationHelpFile -Force
+    Write-Host "    [✓] Deployed to: $moduleHelpPath" -ForegroundColor Gray
+} else {
+    Write-Host "    [SKIP] PowerShell.Map module not installed" -ForegroundColor DarkGray
 }
-
-# Deploy help file to PowerShell modules directory
-Write-Host "`nDeploying to module directory..." -ForegroundColor Cyan
-
-$moduleHelpPath = Join-Path $moduleInstallPath "en-US"
-if (-not (Test-Path $moduleHelpPath)) {
-    New-Item -Path $moduleHelpPath -ItemType Directory -Force | Out-Null
-}
-
-$destinationHelpFile = Join-Path $moduleHelpPath $helpFileName
-Copy-Item -Path $sourceHelpFile -Destination $destinationHelpFile -Force
-Write-Host "[OK] Help file deployed to: $moduleHelpPath" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "=== Build Complete ===" -ForegroundColor Green
-Write-Host "Source: PlatyPS\xml-US\$helpFileName" -ForegroundColor Gray
-Write-Host "Copied to $copiedCount build locations" -ForegroundColor Gray
-Write-Host "Deployed to: $moduleInstallPath\en-US\" -ForegroundColor Gray
+Write-Host ""
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  - Source: PlatyPS\xml-US\$helpFileName" -ForegroundColor Gray
+Write-Host "  - Copied to $copiedCount build location(s)" -ForegroundColor Gray
+if ($module) {
+    Write-Host "  - Deployed to installed module" -ForegroundColor Gray
+}
+Write-Host ""
+Write-Host "Next step: Import the module to test the help" -ForegroundColor Cyan
+Write-Host "  Import-Module PowerShell.Map -Force" -ForegroundColor Gray
+Write-Host "  Get-Help Show-OpenStreetMap -Full" -ForegroundColor Gray
+Write-Host ""
