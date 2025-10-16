@@ -6,10 +6,8 @@ Import-Module "$PSScriptRoot\PowerShell.Map.dll"
 # Module cleanup - stop server when module is removed
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
     $server = [PowerShell.Map.Server.MapServer]::Instance
-    if ($server.IsRunning) {
-        $server.Stop()
-        Write-Verbose "Map server stopped during module cleanup"
-    }
+    $server.Stop()
+    Write-Verbose "Map server stopped during module cleanup"
 }
 
 # Export all cmdlets from the binary module

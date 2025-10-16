@@ -1,25 +1,26 @@
 ﻿using System.Net;
 using System.Text;
 using System.Text.Json;
+using PowerShell.Map.Helpers;
 
 namespace PowerShell.Map.Server;
 
 public class MapServer
 {
-    private static MapServer? _instance;
+    private static readonly MapServer _instance = new();
+    public static MapServer Instance => _instance;
     private static readonly object _lock = new();
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
     private MapState _currentState;
     private DateTime _lastClientAccessTime;
-    private readonly List<StreamWriter> _sseClients = new();
-    private bool _isRunning = false;
+    private readonly List<StreamWriter> _sseClients = [];
 
     private MapServer()
     {
         _currentState = new MapState { Latitude = 35.6586, Longitude = 139.7454, Zoom = 13, DebugMode = false };
         _lastClientAccessTime = DateTime.MinValue;
-        
+
         // Ensure cleanup on process exit
         AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
         {
@@ -27,42 +28,18 @@ public class MapServer
         };
     }
 
-    public static MapServer Instance
-    {
-        get
-        {
-            lock (_lock)
-            {
-                if (_instance == null)
-                {
-                    _instance = new MapServer();
-                    _instance.Start(); // Auto-start server on first access
-                }
-                return _instance;
-            }
-        }
-    }
-
-    public bool IsRunning => _isRunning;
     public string Url { get; private set; } = "http://localhost:8765/";
-    public bool HasConnectedClients
-    {
-        get
-        {
-            lock (_lock)
-            {
-                // Simply check if we have clients
-                // Dead clients are removed in NotifyClients() when write fails
-                return _sseClients.Count > 0;
-            }
-        }
-    }
     public DateTime LastClientAccessTime => _lastClientAccessTime;
 
+    public bool IsBrowserWindowOpen()
+    {
+        // Check if any browser window has "PowerShell.Map" in its title
+        return WindowHelper.IsBrowserTabOpen("PowerShell.Map");
+    }
 
     public void Start()
     {
-        if (_isRunning) return;
+        if (_listener != null) return;
 
         try
         {
@@ -71,7 +48,6 @@ public class MapServer
             _listener.Start();
             
             _cts = new CancellationTokenSource();
-            _isRunning = true;
             
             Task.Run(() => HandleRequests(_cts.Token), _cts.Token);
         }
@@ -79,7 +55,6 @@ public class MapServer
         {
             // Port already in use by another process/instance
             // This is OK - just means server is already running
-            _isRunning = true; // Mark as running so we dont try again
         }
     }
 
@@ -89,7 +64,6 @@ public class MapServer
         _listener?.Stop();
         _listener?.Close();
         _listener = null;
-        _isRunning = false;
         
         // Close all SSE connections
         lock (_lock)
@@ -379,10 +353,25 @@ public class MapServer
             writer.WriteLine();
             writer.Flush();
             
-            // Keep connection alive until client disconnects
-            while (true)
+            
+            // Keep connection alive by sending periodic comments
+            // If write fails, client has disconnected
+            try
             {
-                System.Threading.Thread.Sleep(1000);
+                while (!(_cts?.Token.IsCancellationRequested ?? false))
+                {
+                    // Wait 30 seconds before sending next keep-alive
+                    Task.Delay(TimeSpan.FromSeconds(30), _cts?.Token ?? CancellationToken.None).Wait();
+                    
+                    // Send keep-alive comment (ignored by browser)
+                    writer.WriteLine(": keep-alive");
+                    writer.WriteLine();
+                    writer.Flush();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Server is shutting down
             }
         }
         catch

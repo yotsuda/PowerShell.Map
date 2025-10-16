@@ -245,9 +245,24 @@ public static class MapHtml
         }
 
         // Initialize
-        log('Starting PowerShell.Map with SSE');
-        initMap();
-        connectSSE();
+        log('Starting PowerShell.Map');
+        
+        // Fetch initial state first, then establish SSE connection
+        fetch('/api/state')
+            .then(response => response.json())
+            .then(state => {
+                log('Initial state loaded from /api/state');
+                initMap();
+                updateMap(state);
+                connectSSE();
+            })
+            .catch(err => {
+                log(`ERROR: Failed to fetch initial state: ${err.message}`);
+                console.error('Failed to fetch initial state:', err);
+                // Fall back to SSE-only mode
+                initMap();
+                connectSSE();
+            });
     </script>
 </body>
 </html>";
