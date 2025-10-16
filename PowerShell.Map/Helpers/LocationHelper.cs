@@ -32,9 +32,37 @@ public static class LocationHelper
         latitude = 0;
         longitude = 0;
 
+        // Try progressively broader searches
+        var searchTerms = new List<string> { placeName };
+        
+        // Remove trailing numbers/hyphens (e.g., "123 Main St" -> "Main St", "上尾市浅間台4-5-27" -> "上尾市浅間台")
+        var withoutNumbers = System.Text.RegularExpressions.Regex.Replace(placeName, @"[\d\-\s]+$", "").Trim();
+        if (!string.IsNullOrWhiteSpace(withoutNumbers) && withoutNumbers != placeName)
+        {
+            searchTerms.Add(withoutNumbers);
+        }
+        
+        // Try each search term
+        foreach (var searchTerm in searchTerms)
+        {
+            if (TryGeocodeExact(searchTerm, out latitude, out longitude, writeVerbose))
+            {
+                return true;
+            }
+        }
+        
+        writeWarning?.Invoke($"Location not found: {placeName}. Try using a broader location name or coordinates (latitude,longitude)");
+        return false;
+    }
+
+    private static bool TryGeocodeExact(string placeName, out double latitude, out double longitude, Action<string>? writeVerbose)
+    {
+        latitude = 0;
+        longitude = 0;
+
         try
         {
-            writeVerbose?.Invoke($"Geocoding location: {placeName}");
+            writeVerbose?.Invoke($"Trying to geocode: {placeName}");
             
             var encodedPlace = Uri.EscapeDataString(placeName);
             var url = $"https://nominatim.openstreetmap.org/search?q={encodedPlace}&format=json&limit=1";
@@ -62,12 +90,10 @@ public static class LocationHelper
                 }
             }
             
-            writeWarning?.Invoke($"Could not geocode location: {placeName}");
             return false;
         }
-        catch (Exception ex)
+        catch
         {
-            writeWarning?.Invoke($"Geocoding failed: {ex.Message}");
             return false;
         }
     }
