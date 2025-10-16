@@ -13,7 +13,9 @@ public class MapServer
     private CancellationTokenSource? _cts;
     private MapState _currentState;
     private DateTime _lastClientAccessTime;
+    private DateTime _lastBrowserOpenTime = DateTime.MinValue;
     private readonly ConcurrentBag<StreamWriter> _sseClients = new();
+    private bool _isRunning = false;
 
     private MapServer()
     {
@@ -32,21 +34,39 @@ public class MapServer
         }
     }
 
-    public bool IsRunning => _listener?.IsListening ?? false;
+    public bool IsRunning => _isRunning;
     public string Url { get; private set; } = "http://localhost:8765/";
+    public bool HasConnectedClients => !_sseClients.IsEmpty || (DateTime.Now - _lastBrowserOpenTime).TotalSeconds < 5;
     public DateTime LastClientAccessTime => _lastClientAccessTime;
 
-    public void Start()
+    public void NotifyBrowserOpened()
     {
-        if (IsRunning) return;
+        _lastBrowserOpenTime = DateTime.Now;
+    }
 
-        _listener = new HttpListener();
-        _listener.Prefixes.Add(Url);
-        _listener.Start();
-        
-        _cts = new CancellationTokenSource();
-        
-        Task.Run(() => HandleRequests(_cts.Token), _cts.Token);
+    public bool Start()
+    {
+        if (_isRunning) return false;
+
+        try
+        {
+            _listener = new HttpListener();
+            _listener.Prefixes.Add(Url);
+            _listener.Start();
+            
+            _cts = new CancellationTokenSource();
+            _isRunning = true;
+            
+            Task.Run(() => HandleRequests(_cts.Token), _cts.Token);
+            return true; // Successfully started new server
+        }
+        catch (HttpListenerException ex) when (ex.ErrorCode == 183 || ex.ErrorCode == 32)
+        {
+            // Port already in use - another process has the server running
+            // Set running to true so we know the server exists, but dont open browser
+            _isRunning = true;
+            return false; // Server already running in another process
+        }
     }
 
     public void Stop()
@@ -55,6 +75,7 @@ public class MapServer
         _listener?.Stop();
         _listener?.Close();
         _listener = null;
+        _isRunning = false;
         
         // Close all SSE connections
         foreach (var client in _sseClients)

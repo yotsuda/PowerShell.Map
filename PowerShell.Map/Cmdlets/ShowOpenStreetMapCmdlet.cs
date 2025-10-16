@@ -147,10 +147,23 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
             server.Start();
             WriteVerbose("Map server started");
             
+            server.NotifyBrowserOpened();
             LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
             WriteVerbose($"Browser opened at {server.Url}");
             
             System.Threading.Thread.Sleep(1000);
+        }
+        else if (!server.HasConnectedClients)
+        {
+            server.NotifyBrowserOpened();
+            LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
+            WriteVerbose("No SSE clients connected, opened new browser tab");
+            
+            System.Threading.Thread.Sleep(1000);
+        }
+        else
+        {
+            WriteVerbose("SSE clients already connected, skipping browser open");
         }
     }
 }
