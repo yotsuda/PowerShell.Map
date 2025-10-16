@@ -21,6 +21,12 @@ public class MapServer
     {
         _currentState = new MapState { Latitude = 35.6586, Longitude = 139.7454, Zoom = 13, DebugMode = false };
         _lastClientAccessTime = DateTime.MinValue;
+        
+        // Ensure cleanup on process exit
+        AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
+        {
+            Stop();
+        };
     }
 
     public static MapServer Instance
