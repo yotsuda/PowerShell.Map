@@ -9,14 +9,6 @@ namespace PowerShell.Map.Cmdlets;
 public class ShowOpenStreetMapCmdlet : PSCmdlet
 {
     [Parameter(Position = 0)]
-    [ValidateRange(-90, 90)]
-    public double? Latitude { get; set; }
-
-    [Parameter(Position = 1)]
-    [ValidateRange(-180, 180)]
-    public double? Longitude { get; set; }
-
-    [Parameter(Position = 0)]
     public string? Location { get; set; }
 
     [Parameter]
@@ -94,36 +86,16 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
             int zoom;
             string? marker = Marker;
             
-            bool hasLocationInput = !string.IsNullOrEmpty(Location) || 
-                                   (Latitude.HasValue && Longitude.HasValue);
-
-            if (hasLocationInput)
+            if (!string.IsNullOrEmpty(Location))
             {
-                if (!string.IsNullOrEmpty(Location))
-                {
-                    if (!LocationHelper.TryParseLocation(Location!, out lat, out lon,
-                        msg => WriteVerbose(msg), msg => WriteWarning(msg)))
-                    {
-                        WriteError(new ErrorRecord(
-                            new ArgumentException($"Invalid location format: {Location}. Use 'latitude,longitude' format or a place name."),
-                            "InvalidLocation",
-                            ErrorCategory.InvalidArgument,
-                            Location));
-                        return;
-                    }
-                }
-                else if (Latitude.HasValue && Longitude.HasValue)
-                {
-                    lat = Latitude.Value;
-                    lon = Longitude.Value;
-                }
-                else
+                if (!LocationHelper.TryParseLocation(Location!, out lat, out lon,
+                    msg => WriteVerbose(msg), msg => WriteWarning(msg)))
                 {
                     WriteError(new ErrorRecord(
-                        new ArgumentException("Either Location or both Latitude and Longitude must be specified."),
-                        "MissingLocation",
+                        new ArgumentException($"Invalid location format: {Location}. Use 'latitude,longitude' format or a place name."),
+                        "InvalidLocation",
                         ErrorCategory.InvalidArgument,
-                        null));
+                        Location));
                     return;
                 }
                 
