@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +13,7 @@ public class MapServer
     private CancellationTokenSource? _cts;
     private MapState _currentState;
     private DateTime _lastClientAccessTime;
+    private readonly ConcurrentBag<StreamWriter> _sseClients = new();
 
     private MapServer()
     {
@@ -53,6 +55,13 @@ public class MapServer
         _listener?.Stop();
         _listener?.Close();
         _listener = null;
+        
+        // Close all SSE connections
+        foreach (var client in _sseClients)
+        {
+            try { client.Close(); } catch { }
+        }
+        _sseClients.Clear();
     }
 
     public MapState GetCurrentState()
@@ -84,6 +93,8 @@ public class MapServer
                 DebugMode = debugMode
             };
         }
+        
+        NotifyClients();
     }
 
     public void UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false)
@@ -135,6 +146,8 @@ public class MapServer
                 DebugMode = debugMode
             };
         }
+        
+        NotifyClients();
     }
 
     public void UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
@@ -179,7 +192,46 @@ public class MapServer
                 DebugMode = debugMode
             };
         }
+        
+        NotifyClients();
     }
+
+    private void NotifyClients()
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        
+        string json;
+        lock (_lock)
+        {
+            json = JsonSerializer.Serialize(_currentState, options);
+        }
+        
+        var deadClients = new List<StreamWriter>();
+        
+        foreach (var client in _sseClients)
+        {
+            try
+            {
+                client.WriteLine($"data: {json}");
+                client.WriteLine();
+                client.Flush();
+            }
+            catch
+            {
+                deadClients.Add(client);
+            }
+        }
+        
+        // Remove dead connections
+        foreach (var dead in deadClients)
+        {
+            try { dead.Close(); } catch { }
+        }
+    }
+
     private async Task HandleRequests(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested && _listener != null)
@@ -215,6 +267,11 @@ public class MapServer
             {
                 ServeMapState(response);
             }
+            else if (request.Url?.AbsolutePath == "/api/events")
+            {
+                HandleSseConnection(response);
+                return; // Don't close response for SSE
+            }
             else
             {
                 response.StatusCode = 404;
@@ -228,6 +285,49 @@ public class MapServer
         finally
         {
             response.Close();
+        }
+    }
+
+    private void HandleSseConnection(HttpListenerResponse response)
+    {
+        response.ContentType = "text/event-stream";
+        response.ContentEncoding = Encoding.UTF8;
+        response.Headers.Add("Cache-Control", "no-cache");
+        response.Headers.Add("Connection", "keep-alive");
+        
+        var writer = new StreamWriter(response.OutputStream, Encoding.UTF8);
+        writer.AutoFlush = true;
+        
+        _sseClients.Add(writer);
+        
+        // Send initial state
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        
+        string json;
+        lock (_lock)
+        {
+            json = JsonSerializer.Serialize(_currentState, options);
+            _lastClientAccessTime = DateTime.Now;
+        }
+        
+        try
+        {
+            writer.WriteLine($"data: {json}");
+            writer.WriteLine();
+            writer.Flush();
+            
+            // Keep connection alive until client disconnects
+            while (true)
+            {
+                System.Threading.Thread.Sleep(1000);
+            }
+        }
+        catch
+        {
+            // Client disconnected
         }
     }
 
@@ -247,7 +347,7 @@ public class MapServer
         lock (_lock)
         {
             state = _currentState;
-            _lastClientAccessTime = DateTime.Now;  // Update last access time
+            _lastClientAccessTime = DateTime.Now;
         }
 
         var options = new JsonSerializerOptions

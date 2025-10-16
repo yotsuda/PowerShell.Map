@@ -56,7 +56,7 @@ public static class MapHtml
         let markers = [];
         let routeLayer = null;
         let lastState = null;
-        let pollCount = 0;
+        let eventSource = null;
         let debugMode = false;
 
         // Color mapping for circle markers
@@ -213,32 +213,41 @@ public static class MapHtml
             }
         }
 
-        async function pollState() {
-            pollCount++;
-            try {
-                log(`Poll #${pollCount}: Fetching /api/state`);
-                const response = await fetch('/api/state');
-                if (!response.ok) {
-                    log(`ERROR: Response status ${response.status}`);
-                    return;
+        function connectSSE() {
+            log('Connecting to SSE endpoint: /api/events');
+            eventSource = new EventSource('/api/events');
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const state = JSON.parse(event.data);
+                    log(`SSE received: lat=${state.latitude}, lng=${state.longitude}, zoom=${state.zoom}`);
+                    updateMap(state);
+                } catch (err) {
+                    log(`ERROR: Failed to parse SSE data: ${err.message}`);
+                    console.error('Failed to parse SSE data:', err);
                 }
-                const state = await response.json();
-                log(`Received: lat=${state.latitude}, lng=${state.longitude}, zoom=${state.zoom}`);
-                updateMap(state);
-            } catch (err) {
-                log(`ERROR: ${err.message}`);
-                console.error('Failed to fetch state:', err);
-            }
+            };
+            
+            eventSource.onerror = function(err) {
+                log(`SSE connection error: ${err}`);
+                console.error('SSE connection error:', err);
+                
+                // Attempt to reconnect after 3 seconds
+                setTimeout(() => {
+                    log('Attempting to reconnect SSE...');
+                    connectSSE();
+                }, 3000);
+            };
+            
+            eventSource.onopen = function() {
+                log('SSE connection established');
+            };
         }
 
         // Initialize
-        log('Starting PowerShell.Map');
+        log('Starting PowerShell.Map with SSE');
         initMap();
-        pollState();
-        
-        // Poll every 500ms
-        setInterval(pollState, 500);
-        log('Polling started (500ms interval)');
+        connectSSE();
     </script>
 </body>
 </html>";
