@@ -121,8 +121,49 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             WriteVerbose($"Route retrieved with {routeCoordinates.Length} coordinate points");
 
             // Update map with route
+            // Use reverse geocoded names for coordinates when possible, preserve location names otherwise
+            string fromLabel;
+            if (IsCoordinateString(From!))
+            {
+                // 座標の場合、逆ジオコーディングを試みる
+                if (LocationHelper.TryReverseGeocode(fromLat, fromLon, out string? reversedName, msg => WriteVerbose(msg)))
+                {
+                    fromLabel = reversedName!;
+                    WriteVerbose($"From: Using reverse geocoded name: {fromLabel}");
+                }
+                else
+                {
+                    fromLabel = $"{fromLat:F6},{fromLon:F6}";
+                    WriteVerbose($"From: Reverse geocoding failed, using coordinates as label");
+                }
+            }
+            else
+            {
+                fromLabel = From!;
+            }
+            
+            string toLabel;
+            if (IsCoordinateString(To!))
+            {
+                // 座標の場合、逆ジオコーディングを試みる
+                if (LocationHelper.TryReverseGeocode(toLat, toLon, out string? reversedName, msg => WriteVerbose(msg)))
+                {
+                    toLabel = reversedName!;
+                    WriteVerbose($"To: Using reverse geocoded name: {toLabel}");
+                }
+                else
+                {
+                    toLabel = $"{toLat:F6},{toLon:F6}";
+                    WriteVerbose($"To: Reverse geocoding failed, using coordinates as label");
+                }
+            }
+            else
+            {
+                toLabel = To!;
+            }
+            
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, DebugMode, From, To));
+                routeCoordinates, Color, Width, DebugMode, fromLabel, toLabel));
             WriteVerbose("Map updated with route");
             
             // Output From marker
@@ -130,7 +171,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             {
                 Latitude = fromLat,
                 Longitude = fromLon,
-                Label = "From",
+                Label = fromLabel,
                 Color = GetMarkerColor(Color),
                 Location = From,
                 Status = "Success",
@@ -143,7 +184,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             {
                 Latitude = toLat,
                 Longitude = toLon,
-                Label = "To",
+                Label = toLabel,
                 Color = GetMarkerColor(Color),
                 Location = To,
                 Status = "Success",

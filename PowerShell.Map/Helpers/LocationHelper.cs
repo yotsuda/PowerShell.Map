@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -111,6 +111,63 @@ public static class LocationHelper
         catch (Exception ex)
         {
             writeWarning?.Invoke($"Failed to open browser: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Try to reverse geocode coordinates to a location name using Nominatim API
+    /// </summary>
+    public static bool TryReverseGeocode(double latitude, double longitude, out string? locationName, Action<string>? writeVerbose = null)
+    {
+        locationName = null;
+
+        try
+        {
+            writeVerbose?.Invoke($"Trying to reverse geocode: ({latitude}, {longitude})");
+            
+            var url = $"https://nominatim.openstreetmap.org/reverse?lat={latitude.ToString(CultureInfo.InvariantCulture)}&lon={longitude.ToString(CultureInfo.InvariantCulture)}&format=json";
+            
+            var response = HttpClientFactory.GeocodingClient.GetStringAsync(url).GetAwaiter().GetResult();
+            
+            using var doc = JsonDocument.Parse(response);
+            var root = doc.RootElement;
+            
+            // Try to get a readable name from the response
+            // Priority: 1) name, 2) display_name (first part), 3) address components
+            if (root.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String)
+            {
+                var name = nameElement.GetString();
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    locationName = name;
+                    writeVerbose?.Invoke($"Reverse geocoded: ({latitude}, {longitude}) -> {locationName}");
+                    return true;
+                }
+            }
+            
+            // Fallback to display_name (take first meaningful part)
+            if (root.TryGetProperty("display_name", out var displayNameElement) && displayNameElement.ValueKind == JsonValueKind.String)
+            {
+                var displayName = displayNameElement.GetString();
+                if (!string.IsNullOrWhiteSpace(displayName))
+                {
+                    // Take the first part before the first comma
+                    var firstPart = displayName.Split(',')[0].Trim();
+                    if (!string.IsNullOrWhiteSpace(firstPart))
+                    {
+                        locationName = firstPart;
+                        writeVerbose?.Invoke($"Reverse geocoded: ({latitude}, {longitude}) -> {locationName}");
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        catch (Exception ex)
+        {
+            writeVerbose?.Invoke($"Reverse geocoding failed: {ex.Message}");
+            return false;
         }
     }
 }

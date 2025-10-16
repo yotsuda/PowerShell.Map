@@ -106,7 +106,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     foreach (var loc in Location)
                     {
                         // 座標文字列かどうかチェック
-                        bool isCoordStr = loc.Contains(',') && 
+                        bool isCoordStr = loc.Contains(',') &&
                             loc.Split(',').Length == 2 &&
                             double.TryParse(loc.Split(',')[0].Trim(), out _) &&
                             double.TryParse(loc.Split(',')[1].Trim(), out _);
@@ -124,11 +124,32 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                             continue;
                         }
 
+                        // ラベルを決定: 座標の場合は逆ジオコーディング→座標、ロケーション名の場合はロケーション名
+                        string markerLabel;
+                        if (isCoordStr)
+                        {
+                            // 座標の場合、逆ジオコーディングを試みる
+                            if (LocationHelper.TryReverseGeocode(markerLat, markerLon, out string? reversedName, msg => WriteVerbose(msg)))
+                            {
+                                markerLabel = reversedName!;
+                                WriteVerbose($"Using reverse geocoded name: {markerLabel}");
+                            }
+                            else
+                            {
+                                markerLabel = $"{markerLat:F6},{markerLon:F6}";
+                                WriteVerbose($"Reverse geocoding failed, using coordinates as label");
+                            }
+                        }
+                        else
+                        {
+                            markerLabel = loc;
+                        }
+
                         markerList.Add(new MapMarker
                         {
                             Latitude = markerLat,
                             Longitude = markerLon,
-                            Label = null,
+                            Label = markerLabel,
                             Color = GetMarkerColor(null),
                             Location = loc,
                             Status = "Success",
@@ -211,7 +232,33 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 }
 
                 int zoom = Zoom ?? 13;
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, Marker, DebugMode));
+                
+                // ラベルを決定: Markerパラメータがあればそれを使用、なければ座標の場合は逆ジオコーディング→座標、ロケーション名の場合はロケーション名
+                string label;
+                if (Marker != null)
+                {
+                    label = Marker;
+                }
+                else if (isSingleCoord)
+                {
+                    // 座標の場合、逆ジオコーディングを試みる
+                    if (LocationHelper.TryReverseGeocode(lat, lon, out string? reversedName, msg => WriteVerbose(msg)))
+                    {
+                        label = reversedName!;
+                        WriteVerbose($"Using reverse geocoded name: {label}");
+                    }
+                    else
+                    {
+                        label = $"{lat:F6},{lon:F6}";
+                        WriteVerbose($"Reverse geocoding failed, using coordinates as label");
+                    }
+                }
+                else
+                {
+                    label = Location[0];
+                }
+                
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
                 // マーカー情報を出力
@@ -219,7 +266,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 {
                     Latitude = lat,
                     Longitude = lon,
-                    Label = Marker,
+                    Label = label,
                     Color = GetMarkerColor(null),
                     Location = Location[0],
                     Status = "Success",
