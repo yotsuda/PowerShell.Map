@@ -138,7 +138,8 @@ public class MapServer
     }
 
     public void UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
-                           double[][] routeCoordinates, string? color = null, int width = 4, bool debugMode = false)
+                           double[][] routeCoordinates, string? color = null, int width = 4, bool debugMode = false,
+                           string? fromLocation = null, string? toLocation = null)
     {
         lock (_lock)
         {
@@ -159,6 +160,13 @@ public class MapServer
                       maxDiff > 0.2 ? 10 :
                       maxDiff > 0.1 ? 11 : 12;
             
+            // Create route markers for From and To locations
+            var routeMarkers = new[]
+            {
+                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = $"🚀 {fromLocation ?? "Start"}", Color = "green" },
+                new MapMarker { Latitude = toLat, Longitude = toLon, Label = $"🎯 {toLocation ?? "Goal"}", Color = "red" }
+            };
+            
             _currentState = new MapState
             {
                 Latitude = centerLat,
@@ -167,6 +175,7 @@ public class MapServer
                 RouteCoordinates = routeCoordinates,
                 RouteColor = color ?? "#0066ff",
                 RouteWidth = width,
+                RouteMarkers = routeMarkers,
                 DebugMode = debugMode
             };
         }
@@ -270,4 +279,5 @@ public class MapState
     public string? RouteColor { get; set; }
     public int RouteWidth { get; set; } = 4;
     public MapMarker[]? Markers { get; set; }  // Multiple markers
+    public MapMarker[]? RouteMarkers { get; set; }  // Route start/end markers (use default pin icon)
 }

@@ -71,7 +71,7 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
             WriteVerbose($"Route retrieved with {routeCoordinates.Length} points");
 
             StartServerAndOpenBrowser(server);
-            server.UpdateRoute(fromLat, fromLon, toLat, toLon, routeCoordinates, Color, Width, DebugMode);
+            server.UpdateRoute(fromLat, fromLon, toLat, toLon, routeCoordinates, Color, Width, DebugMode, From, To);
             WriteVerbose("Map updated with route");
         }
         catch (Exception ex)

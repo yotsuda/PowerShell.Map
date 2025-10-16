@@ -160,6 +160,29 @@ public static class MapHtml
                     markers[0].openPopup();
                 }
             }
+            // Add route markers if provided (default pin icons)
+            if (state.routeMarkers && state.routeMarkers.length > 0) {
+                state.routeMarkers.forEach(markerData => {
+                    const marker = L.marker([markerData.latitude, markerData.longitude])
+                        .addTo(map);
+                    
+                    if (markerData.label) {
+                        marker.bindPopup(markerData.label);
+                    }
+                    
+                    markers.push(marker);
+                    log(`Route marker added: ${markerData.label || 'unnamed'} at ${markerData.latitude}, ${markerData.longitude}`);
+                });
+                
+                // Open first route marker popup if available
+                if (state.routeMarkers.length > 0 && state.routeMarkers[0].label) {
+                    // Find the first route marker in the markers array
+                    const firstRouteMarkerIndex = markers.length - state.routeMarkers.length;
+                    if (firstRouteMarkerIndex >= 0) {
+                        markers[firstRouteMarkerIndex].openPopup();
+                    }
+                }
+            }
             // Add single marker if provided (backward compatibility)
             else if (state.marker) {
                 const marker = L.marker([state.latitude, state.longitude])
