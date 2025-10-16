@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -6,6 +7,18 @@ namespace PowerShell.Map.Helpers;
 
 public static class LocationHelper
 {
+    // Geocoding cache: location name -> (latitude, longitude)
+    private static readonly ConcurrentDictionary<string, (double lat, double lon)> _geocodingCache = new();
+    
+    // Reverse geocoding cache: (latitude, longitude) -> location name
+    private static readonly ConcurrentDictionary<string, string> _reverseGeocodingCache = new();
+    
+    // Helper to create cache key for coordinates (rounded to 6 decimal places)
+    private static string GetCoordinateKey(double latitude, double longitude)
+    {
+        return $"{latitude:F6},{longitude:F6}";
+    }
+
     public static bool TryParseLocation(string location, out double latitude, out double longitude, Action<string>? writeVerbose = null, Action<string>? writeWarning = null)
     {
         latitude = 0;
@@ -60,6 +73,22 @@ public static class LocationHelper
         latitude = 0;
         longitude = 0;
 
+        // Check cache first
+        if (_geocodingCache.TryGetValue(placeName, out var cached))
+        {
+            // Check if this is a cached failure (marked with NaN)
+            if (double.IsNaN(cached.lat))
+            {
+                writeVerbose?.Invoke($"Geocoding failed (from cache): {placeName}");
+                return false;
+            }
+            
+            latitude = cached.lat;
+            longitude = cached.lon;
+            writeVerbose?.Invoke($"Geocoded (from cache): {placeName} -> {latitude}, {longitude}");
+            return true;
+        }
+
         try
         {
             writeVerbose?.Invoke($"Trying to geocode: {placeName}");
@@ -84,16 +113,25 @@ public static class LocationHelper
                     if (double.TryParse(latStr, NumberStyles.Float, CultureInfo.InvariantCulture, out latitude) &&
                         double.TryParse(lonStr, NumberStyles.Float, CultureInfo.InvariantCulture, out longitude))
                     {
+                        // Cache the result (both forward and reverse)
+                        _geocodingCache.TryAdd(placeName, (latitude, longitude));
+                        var coordKey = GetCoordinateKey(latitude, longitude);
+                        _reverseGeocodingCache.TryAdd(coordKey, placeName);
                         writeVerbose?.Invoke($"Geocoded: {placeName} -> {latitude}, {longitude}");
                         return true;
                     }
                 }
             }
             
+            // Cache the failure (only in geocoding cache, NOT in reverse cache)
+            _geocodingCache.TryAdd(placeName, (double.NaN, double.NaN));
+            writeVerbose?.Invoke($"Geocoding failed: {placeName}");
             return false;
         }
         catch
         {
+            // Cache the failure (only in geocoding cache, NOT in reverse cache)
+            _geocodingCache.TryAdd(placeName, (double.NaN, double.NaN));
             return false;
         }
     }
@@ -121,6 +159,22 @@ public static class LocationHelper
     {
         locationName = null;
 
+        // Check cache first (using rounded coordinates as key)
+        var cacheKey = GetCoordinateKey(latitude, longitude);
+        if (_reverseGeocodingCache.TryGetValue(cacheKey, out var cached))
+        {
+            // Check if this is a cached failure (empty string marker)
+            if (string.IsNullOrEmpty(cached))
+            {
+                writeVerbose?.Invoke($"Reverse geocoding failed (from cache): ({latitude}, {longitude})");
+                return false;
+            }
+            
+            locationName = cached;
+            writeVerbose?.Invoke($"Reverse geocoded (from cache): ({latitude}, {longitude}) -> {locationName}");
+            return true;
+        }
+
         try
         {
             writeVerbose?.Invoke($"Trying to reverse geocode: ({latitude}, {longitude})");
@@ -140,6 +194,9 @@ public static class LocationHelper
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     locationName = name;
+                    // Cache the result (both forward and reverse)
+                    _reverseGeocodingCache.TryAdd(cacheKey, locationName);
+                    _geocodingCache.TryAdd(locationName, (latitude, longitude));
                     writeVerbose?.Invoke($"Reverse geocoded: ({latitude}, {longitude}) -> {locationName}");
                     return true;
                 }
@@ -156,16 +213,24 @@ public static class LocationHelper
                     if (!string.IsNullOrWhiteSpace(firstPart))
                     {
                         locationName = firstPart;
+                        // Cache the result (both forward and reverse)
+                        _reverseGeocodingCache.TryAdd(cacheKey, locationName);
+                        _geocodingCache.TryAdd(locationName, (latitude, longitude));
                         writeVerbose?.Invoke($"Reverse geocoded: ({latitude}, {longitude}) -> {locationName}");
                         return true;
                     }
                 }
             }
             
+            // Cache the failure (only in reverse cache, NOT in geocoding cache)
+            _reverseGeocodingCache.TryAdd(cacheKey, string.Empty);
+            writeVerbose?.Invoke($"Reverse geocoding failed: ({latitude}, {longitude})");
             return false;
         }
         catch (Exception ex)
         {
+            // Cache the failure (only in reverse cache, NOT in geocoding cache)
+            _reverseGeocodingCache.TryAdd(cacheKey, string.Empty);
             writeVerbose?.Invoke($"Reverse geocoding failed: {ex.Message}");
             return false;
         }
