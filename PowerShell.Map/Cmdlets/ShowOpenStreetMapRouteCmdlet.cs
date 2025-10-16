@@ -70,7 +70,7 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
 
             WriteVerbose($"Route retrieved with {routeCoordinates.Length} points");
 
-            StartServerAndOpenBrowser(server);
+            OpenBrowserIfNeeded(server);
             server.UpdateRoute(fromLat, fromLon, toLat, toLon, routeCoordinates, Color, Width, DebugMode, From, To);
             WriteVerbose("Map updated with route");
         }
@@ -124,7 +124,7 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
         }
     }
 
-    private void StartServerAndOpenBrowser(MapServer server)
+    private void OpenBrowserIfNeeded(MapServer server)
     {
         // Server is always running (auto-started on first access)
         // Just check if we need to open a browser

@@ -75,7 +75,7 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
                     return;
                 }
                 
-                StartServerAndOpenBrowser(server);
+                OpenBrowserIfNeeded(server);
                 server.UpdateMapWithMarkers(markerList.ToArray(), Zoom, DebugMode);
                 WriteVerbose($"Map updated with {markerList.Count} markers");
                 return;
@@ -126,7 +126,7 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
                 WriteVerbose($"Using current location: {lat}, {lon}");
             }
 
-            StartServerAndOpenBrowser(server);
+            OpenBrowserIfNeeded(server);
             server.UpdateMap(lat, lon, zoom, marker, DebugMode);
             WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
         }
@@ -140,7 +140,7 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
         }
     }
 
-    private void StartServerAndOpenBrowser(MapServer server)
+    private void OpenBrowserIfNeeded(MapServer server)
     {
         // Server is always running (auto-started on first access)
         // Just check if we need to open a browser
