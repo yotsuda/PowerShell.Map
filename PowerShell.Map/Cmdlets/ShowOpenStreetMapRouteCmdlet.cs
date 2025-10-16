@@ -136,15 +136,11 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
             
             System.Threading.Thread.Sleep(1000);
         }
-        else
+        else if (!server.HasConnectedClients)
         {
-            var timeSinceLastAccess = DateTime.Now - server.LastClientAccessTime;
-            if (timeSinceLastAccess.TotalSeconds > 30)
-            {
-                LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-                WriteVerbose($"No recent client activity (30s), opening new tab");
-                System.Threading.Thread.Sleep(1000);
-            }
+            LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
+            WriteVerbose("No SSE clients connected, opening new tab");
+            System.Threading.Thread.Sleep(1000);
         }
     }
 }

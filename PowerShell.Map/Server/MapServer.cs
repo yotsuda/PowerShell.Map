@@ -34,6 +34,7 @@ public class MapServer
 
     public bool IsRunning => _listener?.IsListening ?? false;
     public string Url { get; private set; } = "http://localhost:8765/";
+    public bool HasConnectedClients => !_sseClients.IsEmpty;
     public DateTime LastClientAccessTime => _lastClientAccessTime;
 
     public void Start()
