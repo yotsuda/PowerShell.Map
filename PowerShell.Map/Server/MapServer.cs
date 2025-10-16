@@ -1,5 +1,4 @@
-using System.Collections.Concurrent;
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -13,7 +12,6 @@ public class MapServer
     private CancellationTokenSource? _cts;
     private MapState _currentState;
     private DateTime _lastClientAccessTime;
-    private DateTime _lastBrowserOpenTime = DateTime.MinValue;
     private readonly List<StreamWriter> _sseClients = new();
     private bool _isRunning = false;
 
@@ -53,31 +51,14 @@ public class MapServer
         {
             lock (_lock)
             {
-                // Remove dead clients
-                _sseClients.RemoveAll(client =>
-                {
-                    try
-                    {
-                        // Check if the underlying stream is still writable
-                        return client.BaseStream == null || !client.BaseStream.CanWrite;
-                    }
-                    catch
-                    {
-                        return true; // Remove if we cant check
-                    }
-                });
-                
-                // Return true if we have live clients OR just opened browser (grace period)
-                return _sseClients.Count > 0 || (DateTime.Now - _lastBrowserOpenTime).TotalSeconds < 3;
+                // Simply check if we have clients
+                // Dead clients are removed in NotifyClients() when write fails
+                return _sseClients.Count > 0;
             }
         }
     }
     public DateTime LastClientAccessTime => _lastClientAccessTime;
 
-    public void NotifyBrowserOpened()
-    {
-        _lastBrowserOpenTime = DateTime.Now;
-    }
 
     public void Start()
     {
@@ -137,7 +118,7 @@ public class MapServer
         }
     }
 
-    public void UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false)
+    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false)
     {
         lock (_lock)
         {
@@ -151,16 +132,16 @@ public class MapServer
             };
         }
         
-        NotifyClients();
+        return NotifyClients();
     }
 
-    public void UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false)
+    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false)
     {
         lock (_lock)
         {
             if (markers == null || markers.Length == 0)
             {
-                return;
+                return false;
             }
 
             // Calculate center point and bounds
@@ -204,10 +185,10 @@ public class MapServer
             };
         }
         
-        NotifyClients();
+        return NotifyClients();
     }
 
-    public void UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
+    public bool UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
                            double[][] routeCoordinates, string? color = null, int width = 4, bool debugMode = false,
                            string? fromLocation = null, string? toLocation = null)
     {
@@ -250,11 +231,20 @@ public class MapServer
             };
         }
         
-        NotifyClients();
+        return NotifyClients();
     }
 
-    private void NotifyClients()
+    private bool NotifyClients()
     {
+        // クライアントがいない場合は即座に false を返す
+        lock (_lock)
+        {
+            if (_sseClients.Count == 0)
+            {
+                return false;
+            }
+        }
+        
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -267,6 +257,7 @@ public class MapServer
         }
         
         List<StreamWriter> deadClients;
+        int successCount = 0;
         
         lock (_lock)
         {
@@ -279,6 +270,7 @@ public class MapServer
                     client.WriteLine($"data: {json}");
                     client.WriteLine();
                     client.Flush();
+                    successCount++;
                 }
                 catch
                 {
@@ -293,6 +285,8 @@ public class MapServer
                 _sseClients.Remove(dead);
             }
         }
+        
+        return successCount > 0;
     }
 
     private async Task HandleRequests(CancellationToken cancellationToken)

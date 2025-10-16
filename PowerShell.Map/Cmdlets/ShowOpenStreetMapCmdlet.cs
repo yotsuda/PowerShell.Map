@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Management.Automation;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -24,6 +24,8 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
     [Parameter]
     public SwitchParameter DebugMode { get; set; }
 
+    private const int BrowserConnectionWaitMs = 500;
+
     protected override void ProcessRecord()
     {
         try
@@ -34,26 +36,26 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
             if (Markers != null && Markers.Length > 0)
             {
                 var markerList = new List<MapMarker>();
-                
+
                 foreach (var markerHash in Markers)
                 {
                     var location = markerHash["Location"]?.ToString();
                     var label = markerHash["Label"]?.ToString();
                     var color = markerHash["Color"]?.ToString();
-                    
+
                     if (string.IsNullOrEmpty(location))
                     {
                         WriteWarning("Marker without Location property, skipping");
                         continue;
                     }
-                    
-                    if (!LocationHelper.TryParseLocation(location, out double markerLat, out double markerLon, 
+
+                    if (!LocationHelper.TryParseLocation(location, out double markerLat, out double markerLon,
                         msg => WriteVerbose(msg), msg => WriteWarning(msg)))
                     {
                         WriteWarning($"Could not parse location: {location}, skipping");
                         continue;
                     }
-                    
+
                     markerList.Add(new MapMarker
                     {
                         Latitude = markerLat,
@@ -61,10 +63,10 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
                         Label = label,
                         Color = color
                     });
-                    
+
                     WriteVerbose($"Added marker: {label ?? location} at {markerLat}, {markerLon}");
                 }
-                
+
                 if (markerList.Count == 0)
                 {
                     WriteError(new ErrorRecord(
@@ -74,9 +76,9 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
                         Markers));
                     return;
                 }
-                
-                OpenBrowserIfNeeded(server);
-                server.UpdateMapWithMarkers(markerList.ToArray(), Zoom, DebugMode);
+
+                var markers = markerList.ToArray();
+                ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(markers, Zoom, DebugMode));
                 WriteVerbose($"Map updated with {markerList.Count} markers");
                 return;
             }
@@ -85,7 +87,7 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
             double lat, lon;
             int zoom;
             string? marker = Marker;
-            
+
             if (!string.IsNullOrEmpty(Location))
             {
                 if (!LocationHelper.TryParseLocation(Location!, out lat, out lon,
@@ -98,7 +100,7 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
                         Location));
                     return;
                 }
-                
+
                 zoom = Zoom ?? 13;
             }
             else
@@ -112,22 +114,20 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
                         null));
                     return;
                 }
-                
+
                 var currentState = server.GetCurrentState();
                 lat = currentState.Latitude;
                 lon = currentState.Longitude;
                 zoom = Zoom ?? currentState.Zoom;
-                
+
                 if (marker == null)
                 {
                     marker = currentState.Marker;
                 }
-                
+
                 WriteVerbose($"Using current location: {lat}, {lon}");
             }
-
-            OpenBrowserIfNeeded(server);
-            server.UpdateMap(lat, lon, zoom, marker, DebugMode);
+            ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode));
             WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
         }
         catch (Exception ex)
@@ -140,19 +140,17 @@ public class ShowOpenStreetMapCmdlet : PSCmdlet
         }
     }
 
-    private void OpenBrowserIfNeeded(MapServer server)
+    private void ExecuteWithRetry(MapServer server, Func<bool> updateAction)
     {
-        // Server is always running (auto-started on first access)
-        // Just check if we need to open a browser
-        if (!server.HasConnectedClients)
+        bool success = updateAction();
+
+        if (!success)
         {
-            server.NotifyBrowserOpened();
+            WriteVerbose("Update failed (no active clients), opening browser and retrying");
             LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-            WriteVerbose("No SSE clients connected, opened browser tab");
-        }
-        else
-        {
-            WriteVerbose("SSE clients already connected, skipping browser open");
+            System.Threading.Thread.Sleep(BrowserConnectionWaitMs);
+            updateAction();
+            WriteVerbose("Resent map update to new browser tab");
         }
     }
 }

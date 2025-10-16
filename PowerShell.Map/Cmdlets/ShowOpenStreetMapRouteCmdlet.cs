@@ -1,4 +1,4 @@
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using System.Text.Json;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -23,6 +23,8 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
 
     [Parameter]
     public SwitchParameter DebugMode { get; set; }
+
+    private const int BrowserConnectionWaitMs = 500;
 
     protected override void ProcessRecord()
     {
@@ -70,8 +72,7 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
 
             WriteVerbose($"Route retrieved with {routeCoordinates.Length} points");
 
-            OpenBrowserIfNeeded(server);
-            server.UpdateRoute(fromLat, fromLon, toLat, toLon, routeCoordinates, Color, Width, DebugMode, From, To);
+            ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, routeCoordinates, Color, Width, DebugMode, From, To));
             WriteVerbose("Map updated with route");
         }
         catch (Exception ex)
@@ -124,19 +125,17 @@ public class ShowOpenStreetMapRouteCmdlet : PSCmdlet
         }
     }
 
-    private void OpenBrowserIfNeeded(MapServer server)
+    private void ExecuteWithRetry(MapServer server, Func<bool> updateAction)
     {
-        // Server is always running (auto-started on first access)
-        // Just check if we need to open a browser
-        if (!server.HasConnectedClients)
+        bool success = updateAction();
+
+        if (!success)
         {
-            server.NotifyBrowserOpened();
+            WriteVerbose("Update failed (no active clients), opening browser and retrying");
             LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
-            WriteVerbose("No SSE clients connected, opened browser tab");
-        }
-        else
-        {
-            WriteVerbose("SSE clients already connected, skipping browser open");
+            System.Threading.Thread.Sleep(BrowserConnectionWaitMs);
+            updateAction();
+            WriteVerbose("Resent map update to new browser tab");
         }
     }
 }
