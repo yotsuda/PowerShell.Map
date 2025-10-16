@@ -14,7 +14,7 @@ public class MapServer
     private MapState _currentState;
     private DateTime _lastClientAccessTime;
     private DateTime _lastBrowserOpenTime = DateTime.MinValue;
-    private readonly ConcurrentBag<StreamWriter> _sseClients = new();
+    private readonly List<StreamWriter> _sseClients = new();
     private bool _isRunning = false;
 
     private MapServer()
@@ -36,7 +36,31 @@ public class MapServer
 
     public bool IsRunning => _isRunning;
     public string Url { get; private set; } = "http://localhost:8765/";
-    public bool HasConnectedClients => !_sseClients.IsEmpty || (DateTime.Now - _lastBrowserOpenTime).TotalSeconds < 5;
+    public bool HasConnectedClients
+    {
+        get
+        {
+            lock (_lock)
+            {
+                // Remove dead clients
+                _sseClients.RemoveAll(client =>
+                {
+                    try
+                    {
+                        // Check if the underlying stream is still writable
+                        return client.BaseStream == null || !client.BaseStream.CanWrite;
+                    }
+                    catch
+                    {
+                        return true; // Remove if we cant check
+                    }
+                });
+                
+                // Return true if we have live clients OR just opened browser (grace period)
+                return _sseClients.Count > 0 || (DateTime.Now - _lastBrowserOpenTime).TotalSeconds < 3;
+            }
+        }
+    }
     public DateTime LastClientAccessTime => _lastClientAccessTime;
 
     public void NotifyBrowserOpened()
@@ -78,11 +102,14 @@ public class MapServer
         _isRunning = false;
         
         // Close all SSE connections
-        foreach (var client in _sseClients)
+        lock (_lock)
         {
-            try { client.Close(); } catch { }
+            foreach (var client in _sseClients)
+            {
+                try { client.Close(); } catch { }
+            }
+            _sseClients.Clear();
         }
-        _sseClients.Clear();
     }
 
     public MapState GetCurrentState()
@@ -230,26 +257,32 @@ public class MapServer
             json = JsonSerializer.Serialize(_currentState, options);
         }
         
-        var deadClients = new List<StreamWriter>();
+        List<StreamWriter> deadClients;
         
-        foreach (var client in _sseClients)
+        lock (_lock)
         {
-            try
+            deadClients = new List<StreamWriter>();
+            
+            foreach (var client in _sseClients)
             {
-                client.WriteLine($"data: {json}");
-                client.WriteLine();
-                client.Flush();
+                try
+                {
+                    client.WriteLine($"data: {json}");
+                    client.WriteLine();
+                    client.Flush();
+                }
+                catch
+                {
+                    deadClients.Add(client);
+                }
             }
-            catch
+            
+            // Remove dead connections
+            foreach (var dead in deadClients)
             {
-                deadClients.Add(client);
+                try { dead.Close(); } catch { }
+                _sseClients.Remove(dead);
             }
-        }
-        
-        // Remove dead connections
-        foreach (var dead in deadClients)
-        {
-            try { dead.Close(); } catch { }
         }
     }
 
@@ -319,7 +352,10 @@ public class MapServer
         var writer = new StreamWriter(response.OutputStream, Encoding.UTF8);
         writer.AutoFlush = true;
         
-        _sseClients.Add(writer);
+        lock (_lock)
+        {
+            _sseClients.Add(writer);
+        }
         
         // Send initial state
         var options = new JsonSerializerOptions
@@ -349,6 +385,14 @@ public class MapServer
         catch
         {
             // Client disconnected
+        }
+        finally
+        {
+            lock (_lock)
+            {
+                _sseClients.Remove(writer);
+            }
+            try { writer.Close(); } catch { }
         }
     }
 
