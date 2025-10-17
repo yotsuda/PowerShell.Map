@@ -6,11 +6,9 @@
     CompanyName = ''
     Copyright = '(c) 2025. All rights reserved.'
     Description = 'Interactive map visualization for PowerShell using Leaflet.js and OpenStreetMap'
-    PowerShellVersion = '5.1'
-    DotNetFrameworkVersion = '4.7.2'
+    PowerShellVersion = '7.0'
 
     FormatsToProcess = @('PowerShell.Map.Format.ps1xml')
-    CLRVersion = '4.0'
 
     FunctionsToExport = @()
     CmdletsToExport = @(
