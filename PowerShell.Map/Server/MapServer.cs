@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using PowerShell.Map.Helpers;
@@ -69,9 +69,54 @@ public class MapServer
     public void Stop()
     {
         _cts?.Cancel();
-        _listener?.Stop();
-        _listener?.Close();
-        _listener = null;
+        
+        // Safely stop and close the HttpListener
+        if (_listener != null)
+        {
+            bool shouldStop = false;
+            bool shouldClose = false;
+            
+            // Check if listener is still active (this itself might throw if disposed)
+            try
+            {
+                shouldStop = _listener.IsListening;
+                shouldClose = true;  // If IsListening succeeds, we can try Close()
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed - nothing to do
+            }
+            catch
+            {
+                // Any other error - skip Stop/Close
+            }
+            
+            if (shouldStop)
+            {
+                try
+                {
+                    _listener.Stop();
+                }
+                catch
+                {
+                    // Ignore any errors during Stop()
+                }
+            }
+            
+            if (shouldClose)
+            {
+                try
+                {
+                    _listener.Close();
+                }
+                catch
+                {
+                    // Ignore any errors during Close()
+                }
+            }
+            
+            _listener = null;
+        }
         
         // Close all SSE connections
         lock (_lock)
@@ -468,3 +513,4 @@ public class MapState
     public bool Animate { get; set; }  // Enable smooth animation
     public double Duration { get; set; } = 1.0;  // Animation duration in seconds
 }
+
