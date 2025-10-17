@@ -38,11 +38,11 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
     [ValidateRange(0.1, 10.0)]
     public double Duration { get; set; } = 1.5;
 
-    /// <summary>
-    /// Enable debug mode to show detailed logging
-    /// </summary>
-    [Parameter]
-    public SwitchParameter DebugMode { get; set; }
+    // /// <summary>
+    // /// Enable debug mode to show detailed logging
+    // /// </summary>
+    // [Parameter]
+    private SwitchParameter DebugMode { get; set; }
 
     private readonly List<string> _allLocations = new();
 

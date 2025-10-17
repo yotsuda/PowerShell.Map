@@ -52,11 +52,11 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     [ValidateRange(0.0, 10.0)]
     public double Duration { get; set; } = 1.0;
 
-    /// <summary>
-    /// Enable debug mode to show detailed logging
-    /// </summary>
-    [Parameter]
-    public SwitchParameter DebugMode { get; set; }
+    // /// <summary>
+    // /// Enable debug mode to show detailed logging
+    // /// </summary>
+    // [Parameter]
+    private SwitchParameter DebugMode { get; set; }
 
     protected override void ProcessRecord()
     {
@@ -178,7 +178,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, Zoom, DebugMode, fromLabel, toLabel, Duration));
+                routeCoordinates, Color, Width, Zoom, false, fromLabel, toLabel, Duration));
             WriteVerbose("Map updated with route");
             
             // Output From marker

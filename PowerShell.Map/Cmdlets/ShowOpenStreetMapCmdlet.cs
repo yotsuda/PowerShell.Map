@@ -54,8 +54,8 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     [ValidateRange(0.0, 10.0)]
     public double Duration { get; set; } = 1.0;
 
-    [Parameter]
-    public SwitchParameter DebugMode { get; set; }
+    // [Parameter]
+    private SwitchParameter DebugMode { get; set; }
 
     private readonly List<MapMarker> _pipelineMarkers = [];
 
@@ -265,7 +265,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 {
                     label = Location[0];
                 }
-                
+
                 ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
