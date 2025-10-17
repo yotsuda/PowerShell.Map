@@ -69,6 +69,39 @@ Show-OpenStreetMap Paris -Duration 2 -Zoom 15
 Import-Csv locations.csv | Show-OpenStreetMap
 ```
 
+## Claude Desktop Integration (AI-Powered)
+
+PowerShell.Map integrates with Claude Desktop via [PowerShell.MCP](https://github.com/yotsuda/PowerShell.MCP), enabling natural language map visualization.
+
+### Setup
+
+1. Install PowerShell.MCP:
+```powershell
+Install-Module PowerShell.MCP
+```
+
+2. Configure Claude Desktop to use PowerShell.MCP (see [PowerShell.MCP documentation](https://github.com/yotsuda/PowerShell.MCP))
+
+### Usage
+
+Once configured, simply tell Claude to set up the module:
+
+**"In PowerShell console, run Import-Module PowerShell.Map and check how to use it."**
+
+Then ask for what you want:
+
+- **"Show me a tour of famous temples in Kyoto"**
+- **"Create a route from Tokyo Tower to Senso-ji Temple"**
+- **"Show me a walking tour of cafes in Paris"**
+- **"Plan a hot spring tour across Japan with routes between locations"**
+
+Claude will translate these requests into PowerShell.Map commands and display the interactive maps automatically.
+
+### Links
+
+- [PowerShell.MCP on PowerShell Gallery](https://www.powershellgallery.com/packages/PowerShell.MCP)
+- [PowerShell.MCP on GitHub](https://github.com/yotsuda/PowerShell.MCP)
+
 ## Requirements
 
 - PowerShell 5.1 or later
