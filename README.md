@@ -1,6 +1,6 @@
 # PowerShell.Map
 
-Interactive map visualization for PowerShell using Leaflet.js and OpenStreetMap.
+Interactive map visualization for PowerShell using Leaflet.js and OpenStreetMap. Although usable standalone, this module is primarily designed for Claude Desktop integration via the PowerShell.MCP module, enabling AI-powered map visualization.
 
 ## Features
 
@@ -22,25 +22,25 @@ Install-Module -Name PowerShell.Map
 ### Display a Single Location
 
 ```powershell
-Show-OpenStreetMap -Location "Tokyo"
+Show-OpenStreetMap Tokyo
 ```
 
 ### Display Multiple Locations
 
 ```powershell
-Show-OpenStreetMap -Location "Tokyo", "Osaka", "Kyoto"
+Show-OpenStreetMap Tokyo, Osaka, Kyoto
 ```
 
 ### Show a Route
 
 ```powershell
-Show-OpenStreetMapRoute -From "Tokyo" -To "Osaka"
+Show-OpenStreetMapRoute -From Tokyo -To Osaka
 ```
 
 ### Create an Animated Tour
 
 ```powershell
-Start-OpenStreetMapTour -Location "Tokyo", "Osaka", "Kyoto", "Fukuoka" -Duration 1.5 -PauseTime 2
+Start-OpenStreetMapTour Tokyo, Osaka, Kyoto, Fukuoka -Duration 2.5 -PauseTime 2
 ```
 
 ## Cmdlets
@@ -60,7 +60,7 @@ Show-OpenStreetMap -Location "35.6762,139.6503" -Marker "Tokyo Tower"
 ### Custom Colors and Animation
 
 ```powershell
-Show-OpenStreetMap -Location "Paris" -Duration 2.0 -Zoom 15
+Show-OpenStreetMap Paris -Duration 2 -Zoom 15
 ```
 
 ### CSV Pipeline
