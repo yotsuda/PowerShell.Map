@@ -104,7 +104,7 @@ Claude will translate these requests into PowerShell.Map commands and display th
 
 ## Requirements
 
-- PowerShell 5.1 or later
+- PowerShell 7.2 or later
 - Internet connection (for OpenStreetMap tiles and geocoding)
 
 ## License
