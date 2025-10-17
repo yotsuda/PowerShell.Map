@@ -35,3 +35,6 @@ artifacts/
 
 # Staging directory build artifacts
 Staging/*.dll
+
+# PlatyPS generated help files
+**/PlatyPS/xml-US/*.xml

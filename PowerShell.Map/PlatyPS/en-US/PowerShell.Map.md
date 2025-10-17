@@ -8,9 +8,7 @@ Locale: en-US
 
 # PowerShell.Map Module
 ## Description
-PowerShell.Map is a module for displaying interactive maps using OpenStreetMap and Leaflet.js.  This module provides cmdlets to: - Display interactive maps in your web browser - Add markers to maps with customizable labels and colors - Calculate and display routes between locations
-- Support multiple input formats (place names, coordinates, CSV files)
-- Geocode location names using the Nominatim API
+PowerShell.Map is a module for displaying interactive maps using OpenStreetMap and Leaflet.js.  This module provides cmdlets to: - Display interactive maps in your web browser - Add markers to maps with customizable labels and colors - Calculate and display routes between locations - Support multiple input formats (place names, coordinates, CSV files) - Geocode location names using the Nominatim API
 - Route calculation using the OSRM API
 
 The module runs a local HTTP server on port 8765 to serve the interactive map interface.
@@ -21,4 +19,7 @@ Displays an interactive map using OpenStreetMap and Leaflet.js in the default br
 
 ### [Show-OpenStreetMapRoute](Show-OpenStreetMapRoute.md)
 Displays a route between two locations on an interactive map.
+
+### [Start-OpenStreetMapTour](Start-OpenStreetMapTour.md)
+{{ Fill in the Synopsis }}
 
