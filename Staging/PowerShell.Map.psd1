@@ -27,9 +27,9 @@
     PrivateData = @{
         PSData = @{
             Tags = @('Map', 'Visualization', 'GIS', 'Leaflet', 'OpenStreetMap', 'Route')
-            LicenseUri = ''
+            LicenseUri = 'https://github.com/yotsuda/PowerShell.Map/blob/master/LICENSE'
             ProjectUri = 'https://github.com/yotsuda/PowerShell.Map'
-            ReleaseNotes = 'v0.1.0: Initial release with Show-OpenStreetMap and Show-OpenStreetMapRoute. Provider-specific cmdlets for future extensibility.'
+            ReleaseNotes = 'v0.1.0: Initial release with Show-OpenStreetMap, Show-OpenStreetMapRoute, and Start-OpenStreetMapTour. Interactive maps with smooth animations and route visualization.'
         }
     }
 }
