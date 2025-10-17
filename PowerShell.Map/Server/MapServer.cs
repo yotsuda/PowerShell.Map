@@ -100,7 +100,7 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false)
+    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0)
     {
         lock (_lock)
         {
@@ -110,7 +110,9 @@ public class MapServer
                 Longitude = longitude,
                 Zoom = zoom,
                 Marker = marker,
-                DebugMode = debugMode
+                DebugMode = debugMode,
+                Animate = duration > 0,  // Auto-enable animation if duration is specified
+                Duration = duration
             };
         }
         
@@ -178,8 +180,10 @@ public class MapServer
     }
 
     public bool UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
-                           double[][] routeCoordinates, string? color = null, int width = 4, bool debugMode = false,
-                           string? fromLocation = null, string? toLocation = null)
+                           double[][] routeCoordinates, string? color = null, int width = 4, 
+                           int? zoom = null, bool debugMode = false,
+                           string? fromLocation = null, string? toLocation = null, 
+                           double duration = 1.0)
     {
         lock (_lock)
         {
@@ -187,19 +191,26 @@ public class MapServer
             var centerLat = (fromLat + toLat) / 2;
             var centerLon = (fromLon + toLon) / 2;
             
-            // Calculate appropriate zoom based on distance
-            var latDiff = Math.Abs(fromLat - toLat);
-            var lonDiff = Math.Abs(fromLon - toLon);
-            var maxDiff = Math.Max(latDiff, lonDiff);
-            
-            int zoom = maxDiff > 10 ? 5 :
-                      maxDiff > 5 ? 6 :
-                      maxDiff > 2 ? 7 :
-                      maxDiff > 1 ? 8 :
-                      maxDiff > 0.5 ? 9 :
-                      maxDiff > 0.2 ? 10 :
-                      maxDiff > 0.1 ? 11 : 12;
-            
+            // Use specified zoom or calculate appropriate zoom based on distance
+            int targetZoom;
+            if (zoom.HasValue)
+            {
+                targetZoom = zoom.Value;
+            }
+            else
+            {
+                var latDiff = Math.Abs(fromLat - toLat);
+                var lonDiff = Math.Abs(fromLon - toLon);
+                var maxDiff = Math.Max(latDiff, lonDiff);
+                
+                targetZoom = maxDiff > 10 ? 5 :
+                           maxDiff > 5 ? 6 :
+                           maxDiff > 2 ? 7 :
+                           maxDiff > 1 ? 8 :
+                           maxDiff > 0.5 ? 9 :
+                           maxDiff > 0.2 ? 10 :
+                           maxDiff > 0.1 ? 11 : 12;
+            }
             // Create route markers for From and To locations
             var routeMarkers = new[]
             {
@@ -211,12 +222,14 @@ public class MapServer
             {
                 Latitude = centerLat,
                 Longitude = centerLon,
-                Zoom = zoom,
+                Zoom = targetZoom,
                 RouteCoordinates = routeCoordinates,
                 RouteColor = color ?? "#0066ff",
                 RouteWidth = width,
                 RouteMarkers = routeMarkers,
-                DebugMode = debugMode
+                DebugMode = debugMode,
+                Animate = duration > 0,  // Auto-enable animation if duration is specified
+                Duration = duration
             };
         }
         
@@ -452,4 +465,6 @@ public class MapState
     public int RouteWidth { get; set; } = 4;
     public MapMarker[]? Markers { get; set; }  // Multiple markers
     public MapMarker[]? RouteMarkers { get; set; }  // Route start/end markers (use default pin icon)
+    public bool Animate { get; set; }  // Enable smooth animation
+    public double Duration { get; set; } = 1.0;  // Animation duration in seconds
 }

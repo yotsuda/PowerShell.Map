@@ -38,6 +38,21 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     public int Width { get; set; } = 4;
 
     /// <summary>
+    /// Zoom level (1-19). If not specified, automatically calculated based on route distance
+    /// </summary>
+    [Parameter]
+    [ValidateRange(1, 19)]
+    public int? Zoom { get; set; }
+
+    /// <summary>
+    /// Animation duration in seconds (0.0-10.0, default: 1.0)
+    /// Set to 0 for instant movement without animation
+    /// </summary>
+    [Parameter]
+    [ValidateRange(0.0, 10.0)]
+    public double Duration { get; set; } = 1.0;
+
+    /// <summary>
     /// Enable debug mode to show detailed logging
     /// </summary>
     [Parameter]
@@ -163,7 +178,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, DebugMode, fromLabel, toLabel));
+                routeCoordinates, Color, Width, Zoom, DebugMode, fromLabel, toLabel, Duration));
             WriteVerbose("Map updated with route");
             
             // Output From marker

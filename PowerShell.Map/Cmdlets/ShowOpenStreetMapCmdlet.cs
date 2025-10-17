@@ -46,6 +46,14 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     [ValidateRange(1, 19)]
     public int? Zoom { get; set; }
 
+    /// <summary>
+    /// Animation duration in seconds (0.0-10.0, default: 1.0)
+    /// Set to 0 for instant movement without animation
+    /// </summary>
+    [Parameter]
+    [ValidateRange(0.0, 10.0)]
+    public double Duration { get; set; } = 1.0;
+
     [Parameter]
     public SwitchParameter DebugMode { get; set; }
 
@@ -258,7 +266,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     label = Location[0];
                 }
                 
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
                 // マーカー情報を出力
@@ -285,7 +293,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 string? marker = Marker ?? currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
             }
         }

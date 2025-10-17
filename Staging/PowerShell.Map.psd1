@@ -13,7 +13,12 @@
     CLRVersion = '4.0'
 
     FunctionsToExport = @()
-    CmdletsToExport = @('Show-OpenStreetMap', 'Show-OpenStreetMapRoute')
+    CmdletsToExport = @(
+'Show-OpenStreetMap',
+'Show-OpenStreetMapRoute',
+'Start-OpenStreetMapTour'
+)
+
     VariablesToExport = @()
     AliasesToExport = @()
 

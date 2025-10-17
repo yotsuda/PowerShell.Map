@@ -104,12 +104,24 @@ public static class MapHtml
             log(`Updating map: ${state.latitude}, ${state.longitude} @ zoom ${state.zoom}`);
             lastState = stateStr;
 
-            // Update view
-            map.setView([state.latitude, state.longitude], state.zoom, {
-                animate: true,
-                duration: 0.5
-            });
-
+            // Update view with animation control
+            // If duration > 0, use flyTo for smooth animation (zoom out → move → zoom in)
+            // If duration = 0, use setView for instant movement
+            const shouldAnimate = state.animate && state.duration > 0;
+            const durationInSeconds = state.duration || 1.0;
+            
+            if (shouldAnimate) {
+                // Use flyTo for smooth, dramatic animation (especially for long distances)
+                map.flyTo([state.latitude, state.longitude], state.zoom, {
+                    animate: true,
+                    duration: durationInSeconds
+                });
+            } else {
+                // Use setView for instant movement (no animation)
+                map.setView([state.latitude, state.longitude], state.zoom, {
+                    animate: false
+                });
+            }
             // Clear all markers
             markers.forEach(m => map.removeLayer(m));
             markers = [];
