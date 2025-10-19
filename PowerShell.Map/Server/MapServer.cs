@@ -283,7 +283,7 @@ public class MapServer
 
     private bool NotifyClients()
     {
-        // クライアントがいない場合は即座に false を返す
+        // Return false if no clients are connected
         lock (_lock)
         {
             if (_sseClients.Count == 0)
