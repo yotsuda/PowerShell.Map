@@ -114,10 +114,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     foreach (var loc in Location)
                     {
                         // 座標文字列かどうかチェック
-                        bool isCoordStr = loc.Contains(',') &&
-                            loc.Split(',').Length == 2 &&
-                            double.TryParse(loc.Split(',')[0].Trim(), out _) &&
-                            double.TryParse(loc.Split(',')[1].Trim(), out _);
+                        bool isCoordStr = CoordinateValidator.IsCoordinateString(loc);
 
                         if (!LocationHelper.TryParseLocation(loc, out double markerLat, out double markerLon,
                             msg => WriteVerbose(msg), msg => WriteWarning(msg)))
@@ -214,10 +211,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 }
 
                 // 単一の場所が指定された場合
-                bool isSingleCoord = Location[0].Contains(',') && 
-                    Location[0].Split(',').Length == 2 &&
-                    double.TryParse(Location[0].Split(',')[0].Trim(), out _) &&
-                    double.TryParse(Location[0].Split(',')[1].Trim(), out _);
+                bool isSingleCoord = CoordinateValidator.IsCoordinateString(Location[0]);
 
                 if (!LocationHelper.TryParseLocation(Location[0], out double lat, out double lon,
                     msg => WriteVerbose(msg), msg => WriteWarning(msg)))
@@ -428,10 +422,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         }
 
         // 座標文字列かどうかチェック
-        bool isCoordinates = location.Contains(',') && 
-            location.Split(',').Length == 2 &&
-            double.TryParse(location.Split(',')[0].Trim(), out _) &&
-            double.TryParse(location.Split(',')[1].Trim(), out _);
+        bool isCoordinates = CoordinateValidator.IsCoordinateString(location);
 
         if (!LocationHelper.TryParseLocation(location, out double markerLat, out double markerLon,
             msg => WriteVerbose(msg), msg => WriteWarning(msg)))
@@ -474,10 +465,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         }
 
         // 座標文字列かどうかチェック
-        bool isCoordinates = location.Contains(',') && 
-            location.Split(',').Length == 2 &&
-            double.TryParse(location.Split(',')[0].Trim(), out _) &&
-            double.TryParse(location.Split(',')[1].Trim(), out _);
+        bool isCoordinates = CoordinateValidator.IsCoordinateString(location);
 
         if (!LocationHelper.TryParseLocation(location, out double markerLat, out double markerLon,
             msg => WriteVerbose(msg), msg => WriteWarning(msg)))

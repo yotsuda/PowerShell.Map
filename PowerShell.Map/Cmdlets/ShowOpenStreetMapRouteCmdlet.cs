@@ -97,7 +97,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
                     Label = "From",
                     Location = From,
                     Status = "Success",
-                    GeocodingSource = IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
+                    GeocodingSource = CoordinateValidator.IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
                 };
                 WriteObject(successFromMarker);
                 
@@ -138,7 +138,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             // Update map with route
             // Use reverse geocoded names for coordinates when possible, preserve location names otherwise
             string fromLabel;
-            if (IsCoordinateString(From!))
+            if (CoordinateValidator.IsCoordinateString(From!))
             {
                 // 座標の場合、逆ジオコーディングを試みる
                 if (LocationHelper.TryReverseGeocode(fromLat, fromLon, out string? reversedName, msg => WriteVerbose(msg)))
@@ -158,7 +158,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
             
             string toLabel;
-            if (IsCoordinateString(To!))
+            if (CoordinateValidator.IsCoordinateString(To!))
             {
                 // 座標の場合、逆ジオコーディングを試みる
                 if (LocationHelper.TryReverseGeocode(toLat, toLon, out string? reversedName, msg => WriteVerbose(msg)))
@@ -190,7 +190,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
                 Color = GetMarkerColor(Color),
                 Location = From,
                 Status = "Success",
-                GeocodingSource = IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
+                GeocodingSource = CoordinateValidator.IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
             };
             WriteObject(fromMarker);
             
@@ -203,7 +203,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
                 Color = GetMarkerColor(Color),
                 Location = To,
                 Status = "Success",
-                GeocodingSource = IsCoordinateString(To!) ? "Coordinates" : "Nominatim"
+                GeocodingSource = CoordinateValidator.IsCoordinateString(To!) ? "Coordinates" : "Nominatim"
             };
             WriteObject(toMarker);
         }
@@ -266,10 +266,4 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
         }
     }
 
-    private bool IsCoordinateString(string location)
-    {
-        return location.Contains(',') && location.Split(',').Length == 2 &&
-            double.TryParse(location.Split(',')[0].Trim(), out _) &&
-            double.TryParse(location.Split(',')[1].Trim(), out _);
-    }
 }
