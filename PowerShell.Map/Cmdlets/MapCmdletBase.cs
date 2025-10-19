@@ -5,7 +5,13 @@ namespace PowerShell.Map.Cmdlets;
 
 public abstract class MapCmdletBase : PSCmdlet
 {
-    protected const int BrowserConnectionWaitMs = 2000;
+    // SSE connection configuration
+    protected const int MaxSseConnectionAttempts = 5;
+    protected const int SseConnectionPollIntervalMs = 1000;
+    
+    // Map update retry configuration
+    protected const int MaxMapUpdateRetries = 3;
+    protected const int MapUpdateRetryIntervalMs = 1000;
 
     protected void ExecuteWithRetry(MapServer server, Func<bool> updateAction)
     {
@@ -20,17 +26,16 @@ public abstract class MapCmdletBase : PSCmdlet
             
             // Poll for SSE connection with short timeout intervals
             bool connected = false;
-            const int maxAttempts = 5;
-            for (int i = 0; i < maxAttempts; i++)
+            for (int i = 0; i < MaxSseConnectionAttempts; i++)
             {
-                System.Threading.Thread.Sleep(1000); // Check every 1 second
+                System.Threading.Thread.Sleep(SseConnectionPollIntervalMs);
                 if (server.HasActiveClients())
                 {
                     connected = true;
                     WriteVerbose($"SSE connected after {i + 1} attempt(s)");
                     break;
                 }
-                WriteVerbose($"Waiting for SSE connection... (attempt {i + 1}/{maxAttempts})");
+                WriteVerbose($"Waiting for SSE connection... (attempt {i + 1}/{MaxSseConnectionAttempts})");
             }
             
             if (!connected)
@@ -61,16 +66,15 @@ public abstract class MapCmdletBase : PSCmdlet
         
         // If failed, retry with short intervals
         WriteVerbose("Update failed, retrying...");
-        const int maxRetries = 3;
-        for (int i = 0; i < maxRetries; i++)
+        for (int i = 0; i < MaxMapUpdateRetries; i++)
         {
-            System.Threading.Thread.Sleep(1000);
+            System.Threading.Thread.Sleep(MapUpdateRetryIntervalMs);
             if (updateAction())
             {
                 WriteVerbose($"Map updated successfully after {i + 1} retry(ies)");
                 return;
             }
-            WriteVerbose($"Retry {i + 1}/{maxRetries} failed");
+            WriteVerbose($"Retry {i + 1}/{MaxMapUpdateRetries} failed");
         }
         
         WriteWarning("Failed to update map - please refresh the browser tab");
