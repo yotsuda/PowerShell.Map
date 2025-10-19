@@ -190,26 +190,7 @@ public class MapServer
             var centerLon = (minLon + maxLon) / 2;
             
             // Calculate appropriate zoom if not specified
-            int calculatedZoom;
-            if (zoom.HasValue)
-            {
-                calculatedZoom = zoom.Value;
-            }
-            else
-            {
-                var latDiff = maxLat - minLat;
-                var lonDiff = maxLon - minLon;
-                var maxDiff = Math.Max(latDiff, lonDiff);
-                
-                calculatedZoom = maxDiff > 10 ? 5 :
-                               maxDiff > 5 ? 6 :
-                               maxDiff > 2 ? 7 :
-                               maxDiff > 1 ? 8 :
-                               maxDiff > 0.5 ? 9 :
-                               maxDiff > 0.2 ? 10 :
-                               maxDiff > 0.1 ? 11 :
-                               maxDiff > 0.05 ? 12 : 13;
-            }
+            int calculatedZoom = zoom ?? CalculateOptimalZoom(maxLat - minLat, maxLon - minLon);
             
             _currentState = new MapState
             {
@@ -237,25 +218,7 @@ public class MapServer
             var centerLon = (fromLon + toLon) / 2;
             
             // Use specified zoom or calculate appropriate zoom based on distance
-            int targetZoom;
-            if (zoom.HasValue)
-            {
-                targetZoom = zoom.Value;
-            }
-            else
-            {
-                var latDiff = Math.Abs(fromLat - toLat);
-                var lonDiff = Math.Abs(fromLon - toLon);
-                var maxDiff = Math.Max(latDiff, lonDiff);
-                
-                targetZoom = maxDiff > 10 ? 5 :
-                           maxDiff > 5 ? 6 :
-                           maxDiff > 2 ? 7 :
-                           maxDiff > 1 ? 8 :
-                           maxDiff > 0.5 ? 9 :
-                           maxDiff > 0.2 ? 10 :
-                           maxDiff > 0.1 ? 11 : 12;
-            }
+            int targetZoom = zoom ?? CalculateOptimalZoom(Math.Abs(fromLat - toLat), Math.Abs(fromLon - toLon));
             // Create route markers for From and To locations
             var routeMarkers = new[]
             {
@@ -490,6 +453,30 @@ public class MapServer
         response.ContentType = "application/json";
         response.ContentLength64 = buffer.Length;
         response.OutputStream.Write(buffer, 0, buffer.Length);
+    }
+
+    /// <summary>
+    /// Calculates optimal zoom level based on coordinate differences
+    /// </summary>
+    /// <param name="latDiff">Latitude difference</param>
+    /// <param name="lonDiff">Longitude difference</param>
+    /// <returns>Optimal zoom level (1-19)</returns>
+    private static int CalculateOptimalZoom(double latDiff, double lonDiff)
+    {
+        var maxDiff = Math.Max(latDiff, lonDiff);
+        
+        return maxDiff switch
+        {
+            > 10 => 5,
+            > 5 => 6,
+            > 2 => 7,
+            > 1 => 8,
+            > 0.5 => 9,
+            > 0.2 => 10,
+            > 0.1 => 11,
+            > 0.05 => 12,
+            _ => 13
+        };
     }
 
     private static string GetHtmlTemplate()
