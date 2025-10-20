@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Management.Automation;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -84,6 +84,13 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         try
         {
             var server = MapServer.Instance;
+
+            // Automatically enable 3D mode if Bearing or Pitch is specified
+            if ((Bearing != 0 || Pitch != 0) && !Enable3D)
+            {
+                Enable3D = true;
+                WriteVerbose("3D mode automatically enabled due to Bearing/Pitch parameters");
+            }
 
             // パイプラインからプロパティ経由で受け取った場合
             if (ParameterSetName == PipelineSet && !string.IsNullOrEmpty(Latitude) && !string.IsNullOrEmpty(Longitude))

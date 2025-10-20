@@ -52,6 +52,33 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     [ValidateRange(0.0, 10.0)]
     public double Duration { get; set; } = 1.0;
 
+    /// <summary>
+    /// Routing profile (driving, walking, cycling, default: driving)
+    /// </summary>
+    [Parameter]
+    [ValidateSet("driving", "walking", "cycling", IgnoreCase = true)]
+    public string Profile { get; set; } = "driving";
+
+    /// <summary>
+    /// Enable 3D display (buildings and terrain)
+    /// </summary>
+    [Parameter]
+    public SwitchParameter Enable3D { get; set; }
+
+    /// <summary>
+    /// Camera bearing in degrees (0-360, 0=North, 90=East, 180=South, 270=West)
+    /// </summary>
+    [Parameter]
+    [ValidateRange(0, 360)]
+    public double Bearing { get; set; } = 0;
+
+    /// <summary>
+    /// Camera pitch in degrees (0-85, 0=top-down view, 60=default for 3D, 85=almost horizontal)
+    /// </summary>
+    [Parameter]
+    [ValidateRange(0, 85)]
+    public double Pitch { get; set; } = 0;
+
     // /// <summary>
     // /// Enable debug mode to show detailed logging
     // /// </summary>
@@ -63,6 +90,13 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
         try
         {
             var server = MapServer.Instance;
+
+            // Automatically enable 3D mode if Bearing or Pitch is specified
+            if ((Bearing != 0 || Pitch != 0) && !Enable3D)
+            {
+                Enable3D = true;
+                WriteVerbose("3D mode automatically enabled due to Bearing/Pitch parameters");
+            }
 
             // Parse From location
             if (!LocationHelper.TryParseLocation(From!, out double fromLat, out double fromLon,
@@ -178,7 +212,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, Zoom, false, fromLabel, toLabel, Duration));
+                routeCoordinates, Color, Width, Zoom, false, fromLabel, toLabel, Duration, Enable3D, Bearing, Pitch));
             WriteVerbose("Map updated with route");
             
             // Output From marker
@@ -225,7 +259,9 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     {
         try
         {
-            var url = $"http://router.project-osrm.org/route/v1/driving/{fromLon},{fromLat};{toLon},{toLat}?overview=full&geometries=geojson";
+            // Use Profile parameter in lowercase for URL
+            var profile = Profile.ToLower();
+            var url = $"http://router.project-osrm.org/route/v1/{profile}/{fromLon},{fromLat};{toLon},{toLat}?overview=full&geometries=geojson";
             
             WriteVerbose($"Fetching route from OSRM API: {url}");
             var response = HttpClientFactory.RoutingClient.GetStringAsync(url).GetAwaiter().GetResult();

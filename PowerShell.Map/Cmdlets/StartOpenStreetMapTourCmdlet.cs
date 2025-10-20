@@ -38,6 +38,26 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
     [ValidateRange(0.1, 10.0)]
     public double Duration { get; set; } = 1.5;
 
+    /// <summary>
+    /// Enable 3D display (buildings and terrain)
+    /// </summary>
+    [Parameter]
+    public SwitchParameter Enable3D { get; set; }
+
+    /// <summary>
+    /// Camera bearing in degrees (0-360, 0=North, 90=East, 180=South, 270=West)
+    /// </summary>
+    [Parameter]
+    [ValidateRange(0, 360)]
+    public double Bearing { get; set; } = 0;
+
+    /// <summary>
+    /// Camera pitch in degrees (0-85, 0=top-down view, 60=default for 3D, 85=almost horizontal)
+    /// </summary>
+    [Parameter]
+    [ValidateRange(0, 85)]
+    public double Pitch { get; set; } = 0;
+
     // /// <summary>
     // /// Enable debug mode to show detailed logging
     // /// </summary>
@@ -65,6 +85,13 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
         try
         {
             var server = MapServer.Instance;
+
+            // Automatically enable 3D mode if Bearing or Pitch is specified
+            if ((Bearing != 0 || Pitch != 0) && !Enable3D)
+            {
+                Enable3D = true;
+                WriteVerbose("3D mode automatically enabled due to Bearing/Pitch parameters");
+            }
             
             WriteVerbose($"Starting map tour with {_allLocations.Count} locations");
             
@@ -102,7 +129,7 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                 }
 
                 // Move to location with animation (always animated in tour mode)
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, DebugMode, Duration));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch));
                 
                 // Output progress info
                 WriteObject(new MapMarker

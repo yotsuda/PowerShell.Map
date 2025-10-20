@@ -223,7 +223,7 @@ public class MapServer
                            double[][] routeCoordinates, string? color = null, int width = 4, 
                            int? zoom = null, bool debugMode = false,
                            string? fromLocation = null, string? toLocation = null, 
-                           double duration = 1.0)
+                           double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0)
     {
         lock (_lock)
         {
@@ -251,7 +251,10 @@ public class MapServer
                 RouteMarkers = routeMarkers,
                 DebugMode = debugMode,
                 Animate = duration > 0,  // Auto-enable animation if duration is specified
-                Duration = duration
+                Duration = duration,
+                Enable3D = enable3D,
+                Bearing = bearing,
+                Pitch = pitch
             };
         }
         
