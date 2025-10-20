@@ -213,6 +213,40 @@ public static class MapHtml
             log.innerHTML = '[' + time + '] ' + message + '<br>' + log.innerHTML;
         }
 
+
+        function getTerrainExaggeration(zoom) {
+            // Dynamically adjust terrain exaggeration based on zoom level
+            // to minimize building-terrain interference in urban areas
+            if (zoom >= 15) {
+                // Urban detail level: minimal terrain to reduce building conflicts
+                return 0.3;
+            } else if (zoom >= 13) {
+                // District level: natural terrain
+                return 1.0;
+            } else if (zoom >= 10) {
+                // Wide area: moderate terrain emphasis for mountains
+                return 1.5;
+            } else {
+                // Regional/mountain level: balanced terrain emphasis
+                return 2.0;
+            }
+        }
+
+        function updateTerrainExaggeration() {
+            if (!map || !is3DEnabled) return;
+            const zoom = map.getZoom();
+            const exaggeration = getTerrainExaggeration(zoom);
+            try {
+                map.setTerrain({
+                    'source': 'terrain',
+                    'exaggeration': exaggeration
+                });
+                debugLog('Terrain exaggeration updated: ' + exaggeration.toFixed(1) + ' (zoom: ' + zoom.toFixed(1) + ')');
+            } catch (e) {
+                debugLog('Error updating terrain exaggeration: ' + e.message);
+            }
+        }
+
         function updateCameraInfo() {
             if (!map) return;
             const bearing = map.getBearing();
@@ -299,7 +333,10 @@ public static class MapHtml
 
             // Update camera info on map movement
             map.on('move', updateCameraInfo);
-            map.on('zoom', updateCameraInfo);
+            map.on('zoom', () => {
+                updateCameraInfo();
+                updateTerrainExaggeration();
+            });
             map.on('rotate', updateCameraInfo);
             map.on('pitch', updateCameraInfo);
 
@@ -326,18 +363,19 @@ public static class MapHtml
                 }
             }
             
-            // Enable terrain
+            // Enable terrain with dynamic exaggeration based on zoom level
+            const zoom = map.getZoom();
+            const exaggeration = getTerrainExaggeration(zoom);
             try {
                 map.setTerrain({
                     'source': 'terrain',
-                    'exaggeration': 1.5
+                    'exaggeration': exaggeration
                 });
-                debugLog('Terrain enabled');
+                debugLog('Terrain enabled with exaggeration: ' + exaggeration.toFixed(1) + ' (zoom: ' + zoom.toFixed(1) + ')');
             } catch (e) {
                 debugLog('Error enabling terrain: ' + e.message);
             }
             
-            // Add 3D buildings using standard OSM data
             if (!map.getSource('openmaptiles')) {
                 debugLog('OpenMapTiles source not found, 3D buildings may not be available');
                 return;

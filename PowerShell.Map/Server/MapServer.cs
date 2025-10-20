@@ -167,7 +167,8 @@ public class MapServer
             };
         }
         
-        return NotifyClients();
+        NotifyClients(); // Notify if clients are connected, but state is always updated
+        return true;
     }
 
     public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool enable3D = false, double bearing = 0, double pitch = 0)
@@ -214,7 +215,8 @@ public class MapServer
             };
         }
         
-        return NotifyClients();
+        NotifyClients(); // Notify if clients are connected, but state is always updated
+        return true;
     }
 
     public bool UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
@@ -253,7 +255,8 @@ public class MapServer
             };
         }
         
-        return NotifyClients();
+        NotifyClients(); // Notify if clients are connected, but state is always updated
+        return true;
     }
 
     private bool NotifyClients()
