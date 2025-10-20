@@ -1,4 +1,4 @@
-﻿using System.Management.Automation;
+using System.Management.Automation;
 using PowerShell.Map.Server;
 
 namespace PowerShell.Map.Cmdlets;
@@ -18,10 +18,21 @@ public abstract class MapCmdletBase : PSCmdlet
         bool windowExists = server.IsBrowserWindowOpen();
         WriteVerbose($"Browser window check: {(windowExists ? "exists" : "not found")}");
         
-        // Case 1: No window - Open new tab and poll for SSE connection
+        // Case 1: No window - Update state FIRST, then open browser
         if (!windowExists)
         {
-            WriteVerbose("Opening new browser tab...");
+            WriteVerbose("No browser window found");
+            
+            // Update map state BEFORE opening browser
+            // This ensures the initial /api/state fetch returns the correct location
+            if (!updateAction())
+            {
+                WriteWarning("Failed to update map state");
+                return;
+            }
+            WriteVerbose("Map state updated, opening browser...");
+            
+            // Now open browser - it will load the updated state from /api/state
             Helpers.LocationHelper.OpenBrowser(server.Url, msg => WriteWarning(msg));
             
             // Poll for SSE connection with short timeout intervals
@@ -40,18 +51,11 @@ public abstract class MapCmdletBase : PSCmdlet
             
             if (!connected)
             {
-                WriteWarning("Failed to establish SSE connection - browser may not have opened correctly");
-                return;
-            }
-            
-            // After SSE connection established, update the map
-            if (!updateAction())
-            {
-                WriteWarning("Failed to update map despite SSE connection");
+                WriteWarning("Browser opened but SSE connection not established - map should still display correctly");
             }
             else
             {
-                WriteVerbose("Map updated successfully");
+                WriteVerbose("SSE connected successfully");
             }
             return;
         }

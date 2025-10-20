@@ -231,11 +231,11 @@ public static class MapHtml
             if (is3DEnabled) {
                 toggleSwitch.classList.add('active');
                 enable3DFeatures();
-                debugLog('3D buildings enabled via toggle');
+                debugLog('3D features enabled via toggle');
             } else {
                 toggleSwitch.classList.remove('active');
-                remove3DBuildingsFromStyle();
-                debugLog('3D buildings disabled via toggle');
+                remove3DFeatures();
+                debugLog('3D features disabled via toggle');
             }
         }
 
@@ -272,7 +272,7 @@ public static class MapHtml
             map.on('load', () => {
                 debugLog('Map loaded');
                 
-                // Handle 3D buildings based on enable3D flag
+                // Handle 3D features based on enable3D flag
                 is3DEnabled = state.enable3D;
                 
                 // Update toggle switch UI
@@ -285,7 +285,7 @@ public static class MapHtml
                     enable3DFeatures();
                 } else {
                     // Remove any 3D building layers that might exist in the style
-                    remove3DBuildingsFromStyle();
+                    remove3DFeatures();
                 }
                 
                 updateMapState(state);
@@ -310,8 +310,34 @@ public static class MapHtml
         function enable3DFeatures() {
             debugLog('Enabling 3D features...');
             
-            // Simple 3D buildings using standard OSM data
-            // Wait for style to load, then add 3D layer
+            // Add terrain source (Terrarium format from AWS)
+            if (!map.getSource('terrain')) {
+                try {
+                    map.addSource('terrain', {
+                        'type': 'raster-dem',
+                        'tiles': ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+                        'encoding': 'terrarium',
+                        'tileSize': 256,
+                        'maxzoom': 15
+                    });
+                    debugLog('Terrain source added');
+                } catch (e) {
+                    debugLog('Error adding terrain source: ' + e.message);
+                }
+            }
+            
+            // Enable terrain
+            try {
+                map.setTerrain({
+                    'source': 'terrain',
+                    'exaggeration': 1.5
+                });
+                debugLog('Terrain enabled');
+            } catch (e) {
+                debugLog('Error enabling terrain: ' + e.message);
+            }
+            
+            // Add 3D buildings using standard OSM data
             if (!map.getSource('openmaptiles')) {
                 debugLog('OpenMapTiles source not found, 3D buildings may not be available');
                 return;
@@ -337,8 +363,27 @@ public static class MapHtml
             }
         }
 
-        function remove3DBuildingsFromStyle() {
-            debugLog('Removing 3D building layers...');
+
+        function remove3DFeatures() {
+            debugLog('Removing 3D features...');
+            
+            // Remove terrain
+            try {
+                map.setTerrain(null);
+                debugLog('Terrain disabled');
+            } catch (e) {
+                debugLog('Error disabling terrain: ' + e.message);
+            }
+            
+            // Remove terrain source
+            if (map.getSource('terrain')) {
+                try {
+                    map.removeSource('terrain');
+                    debugLog('Terrain source removed');
+                } catch (e) {
+                    debugLog('Error removing terrain source: ' + e.message);
+                }
+            }
             
             // Check all layers and remove any 3D building layers
             const style = map.getStyle();
@@ -380,7 +425,7 @@ public static class MapHtml
                 currentRoute = null;
             }
 
-            // Handle 3D buildings layer
+            // Handle 3D features
             is3DEnabled = state.enable3D;
             
             // Update toggle switch UI
@@ -391,7 +436,7 @@ public static class MapHtml
                 toggleSwitch.classList.remove('active');
             }
             
-            // Add or remove 3D buildings layer
+            // Add or remove 3D features
             if (state.enable3D) {
                 if (!map.getLayer('3d-buildings')) {
                     enable3DFeatures();
