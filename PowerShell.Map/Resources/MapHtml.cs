@@ -189,7 +189,7 @@ public static class MapHtml
             </div>
         </div>
         <div class=""toggle-3d"" id=""toggle3d"">
-            <span>🏢 3D Buildings</span>
+            <span>🌍 3D</span>
             <div class=""toggle-switch"" id=""toggleSwitch"">
                 <div class=""toggle-knob""></div>
             </div>
@@ -241,7 +241,7 @@ public static class MapHtml
 
 
         function initMap(state) {
-            debugLog('Initializing map... Enable3D: ' + state.enable3DBuildings);
+            debugLog('Initializing map... Enable3D: ' + state.enable3D);
             
             initialZoom = state.zoom;
             
@@ -272,8 +272,8 @@ public static class MapHtml
             map.on('load', () => {
                 debugLog('Map loaded');
                 
-                // Handle 3D buildings based on enable3DBuildings flag
-                is3DEnabled = state.enable3DBuildings;
+                // Handle 3D buildings based on enable3D flag
+                is3DEnabled = state.enable3D;
                 
                 // Update toggle switch UI
                 const toggleSwitch = document.getElementById('toggleSwitch');
@@ -281,7 +281,7 @@ public static class MapHtml
                     toggleSwitch.classList.add('active');
                 }
                 
-                if (state.enable3DBuildings) {
+                if (state.enable3D) {
                     enable3DFeatures();
                 } else {
                     // Remove any 3D building layers that might exist in the style
@@ -360,7 +360,7 @@ public static class MapHtml
         }
 
         function updateMapState(state) {
-            debugLog('Updating map state... Enable3D: ' + state.enable3DBuildings);
+            debugLog('Updating map state... Enable3D: ' + state.enable3D);
             debugMode = state.debugMode;
             document.getElementById('debugLog').className = debugMode ? 'debug-log visible' : 'debug-log';
             
@@ -381,7 +381,7 @@ public static class MapHtml
             }
 
             // Handle 3D buildings layer
-            is3DEnabled = state.enable3DBuildings;
+            is3DEnabled = state.enable3D;
             
             // Update toggle switch UI
             const toggleSwitch = document.getElementById('toggleSwitch');
@@ -392,7 +392,7 @@ public static class MapHtml
             }
             
             // Add or remove 3D buildings layer
-            if (state.enable3DBuildings) {
+            if (state.enable3D) {
                 if (!map.getLayer('3d-buildings')) {
                     enable3DFeatures();
                 }
@@ -404,7 +404,7 @@ public static class MapHtml
             }
 
             // Calculate camera angles
-            const targetPitch = state.pitch !== undefined ? state.pitch : (state.enable3DBuildings ? 60 : 0);
+            const targetPitch = state.pitch !== undefined ? state.pitch : (state.enable3D ? 60 : 0);
             const targetBearing = state.bearing !== undefined ? state.bearing : 0;
 
             // Add markers

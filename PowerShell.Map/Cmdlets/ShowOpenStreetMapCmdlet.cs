@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Management.Automation;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -55,10 +55,10 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     public double Duration { get; set; } = 1.0;
 
     /// <summary>
-    /// Enable 3D buildings display
+    /// Enable 3D display (buildings and terrain)
     /// </summary>
     [Parameter]
-    public SwitchParameter Enable3DBuildings { get; set; }
+    public SwitchParameter Enable3D { get; set; }
 
     /// <summary>
     /// Camera bearing in degrees (0-360, 0=North, 90=East, 180=South, 270=West)
@@ -216,7 +216,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     
                     if (validMarkers.Length > 0)
                     {
-                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3DBuildings, Bearing, Pitch));
+                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch));
                         WriteVerbose($"Map updated with {validMarkers.Length} markers");
                     }
                     
@@ -251,7 +251,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     return;
                 }
 
-                int zoom = Zoom ?? (Enable3DBuildings ? 17 : 13);
+                int zoom = Zoom ?? (Enable3D ? 17 : 13);
                 
                 // ラベルを決定: Markerパラメータがあればそれを使用、なければ座標の場合は逆ジオコーディング→座標、ロケーション名の場合はロケーション名
                 string label;
@@ -278,7 +278,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     label = Location[0];
                 }
 
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration, Enable3DBuildings, Bearing, Pitch));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
                 // マーカー情報を出力
@@ -305,7 +305,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 string? marker = Marker ?? currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration, Enable3DBuildings, Bearing, Pitch));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration, Enable3D, Bearing, Pitch));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
             }
         }
@@ -351,7 +351,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 
                 if (validMarkers.Length > 0)
                 {
-                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3DBuildings, Bearing, Pitch));
+                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch));
                     WriteVerbose($"Map updated with {validMarkers.Length} markers from pipeline");
                 }
                 

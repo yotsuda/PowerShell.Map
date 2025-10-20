@@ -145,12 +145,12 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3DBuildings = false, double bearing = 0, double pitch = 0)
+    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0)
     {
         lock (_lock)
         {
-            // Auto-adjust pitch for 3D buildings if not explicitly set
-            var adjustedPitch = pitch == 0 && enable3DBuildings ? 60 : pitch;
+            // Auto-adjust pitch for 3D if not explicitly set
+            var adjustedPitch = pitch == 0 && enable3D ? 60 : pitch;
             
             _currentState = new MapState
             {
@@ -161,7 +161,7 @@ public class MapServer
                 DebugMode = debugMode,
                 Animate = duration > 0,  // Auto-enable animation if duration is specified
                 Duration = duration,
-                Enable3DBuildings = enable3DBuildings,
+                Enable3D = enable3D,
                 Bearing = bearing,
                 Pitch = adjustedPitch
             };
@@ -170,7 +170,7 @@ public class MapServer
         return NotifyClients();
     }
 
-    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool enable3DBuildings = false, double bearing = 0, double pitch = 0)
+    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool enable3D = false, double bearing = 0, double pitch = 0)
     {
         lock (_lock)
         {
@@ -198,8 +198,8 @@ public class MapServer
             // Calculate appropriate zoom if not specified
             int calculatedZoom = zoom ?? CalculateOptimalZoom(maxLat - minLat, maxLon - minLon);
             
-            // Auto-adjust pitch for 3D buildings if not explicitly set
-            var adjustedPitch = pitch == 0 && enable3DBuildings ? 60 : pitch;
+            // Auto-adjust pitch for 3D if not explicitly set
+            var adjustedPitch = pitch == 0 && enable3D ? 60 : pitch;
             
             _currentState = new MapState
             {
@@ -208,7 +208,7 @@ public class MapServer
                 Zoom = calculatedZoom,
                 Markers = markers,
                 DebugMode = debugMode,
-                Enable3DBuildings = enable3DBuildings,
+                Enable3D = enable3D,
                 Bearing = bearing,
                 Pitch = adjustedPitch
             };
@@ -510,7 +510,7 @@ public class MapState
     public MapMarker[]? Markers { get; set; }  // Multiple markers
     public MapMarker[]? RouteMarkers { get; set; }  // Route start/end markers (use default pin icon)
     public bool Animate { get; set; }  // Enable smooth animation
-    public bool Enable3DBuildings { get; set; }  // Enable 3D buildings display
+    public bool Enable3D { get; set; }  // Enable 3D display (buildings and terrain)
     public double Bearing { get; set; } = 0;  // Camera bearing (0-360 degrees, 0=North)
     public double Pitch { get; set; } = 0;    // Camera pitch (0-85 degrees, 0=top-down)
     public double Duration { get; set; } = 1.0;  // Animation duration in seconds
