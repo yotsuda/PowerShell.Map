@@ -145,10 +145,13 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0)
+    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0, MapView view = MapView.Default, double bearing = 0, double pitch = 0)
     {
         lock (_lock)
         {
+            // Auto-adjust pitch for 3D view if not explicitly set
+            var adjustedPitch = pitch == 0 && view == MapView.Map3D ? 60 : pitch;
+            
             _currentState = new MapState
             {
                 Latitude = latitude,
@@ -157,14 +160,17 @@ public class MapServer
                 Marker = marker,
                 DebugMode = debugMode,
                 Animate = duration > 0,  // Auto-enable animation if duration is specified
-                Duration = duration
+                Duration = duration,
+                View = view,
+                Bearing = bearing,
+                Pitch = adjustedPitch
             };
         }
         
         return NotifyClients();
     }
 
-    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false)
+    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, MapView view = MapView.Default, double bearing = 0, double pitch = 0)
     {
         lock (_lock)
         {
@@ -192,13 +198,19 @@ public class MapServer
             // Calculate appropriate zoom if not specified
             int calculatedZoom = zoom ?? CalculateOptimalZoom(maxLat - minLat, maxLon - minLon);
             
+            // Auto-adjust pitch for 3D view if not explicitly set
+            var adjustedPitch = pitch == 0 && view == MapView.Map3D ? 60 : pitch;
+            
             _currentState = new MapState
             {
                 Latitude = centerLat,
                 Longitude = centerLon,
                 Zoom = calculatedZoom,
                 Markers = markers,
-                DebugMode = debugMode
+                DebugMode = debugMode,
+                View = view,
+                Bearing = bearing,
+                Pitch = adjustedPitch
             };
         }
         
@@ -498,6 +510,8 @@ public class MapState
     public MapMarker[]? Markers { get; set; }  // Multiple markers
     public MapMarker[]? RouteMarkers { get; set; }  // Route start/end markers (use default pin icon)
     public bool Animate { get; set; }  // Enable smooth animation
+    public MapView View { get; set; } = MapView.Default;  // Map view mode
+    public double Bearing { get; set; } = 0;  // Camera bearing (0-360 degrees, 0=North)
+    public double Pitch { get; set; } = 0;    // Camera pitch (0-85 degrees, 0=top-down)
     public double Duration { get; set; } = 1.0;  // Animation duration in seconds
 }
-

@@ -8,22 +8,65 @@ public static class MapHtml
     <meta charset=""utf-8"" />
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>PowerShell.Map</title>
-    <link rel=""stylesheet"" href=""https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"" />
-    <script src=""https://unpkg.com/leaflet@1.9.4/dist/leaflet.js""></script>
+    <link rel=""stylesheet"" href=""https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"" />
+    <script src=""https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js""></script>
     <style>
-        body { margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         #map { height: 100vh; width: 100vw; }
-        .update-indicator {
+        .header-container {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            width: 220px;
+        }
+        .logo {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 16px;
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            z-index: 1000;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2563eb;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .update-indicator {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: sans-serif;
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .reset-button {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             font-family: sans-serif;
             font-size: 12px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            color: #333;
+            transition: all 0.2s;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .reset-button:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         .debug-log {
             position: absolute;
@@ -44,221 +87,518 @@ public static class MapHtml
         .debug-log.visible {
             display: block;
         }
+        .maplibregl-popup-content {
+            padding: 10px;
+            font-family: sans-serif;
+        }
+        .camera-info {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .camera-info-title {
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .camera-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            color: #333;
+        }
+        .camera-info-label {
+            font-weight: 500;
+            margin-right: 12px;
+        }
+        .camera-info-value {
+            color: #666;
+            font-family: monospace;
+        }
+        .toggle-3d {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            transition: all 0.2s;
+            user-select: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .toggle-3d:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background: #ccc;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+        .toggle-switch.active {
+            background: #2563eb;
+        }
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(20px);
+        }
     </style>
 </head>
 <body>
     <div id=""map""></div>
-    <div class=""update-indicator"">🗺️ PowerShell.Map</div>
-    <div class=""debug-log"" id=""debug""></div>
-    
+    <div class=""header-container"">
+        <a href=""https://github.com/yotsuda/PowerShell.Map#readme"" target=""_blank"" rel=""noopener noreferrer"" class=""logo"">🗺️ PowerShell.Map</a>
+        <div class=""camera-info"" id=""cameraInfo"">
+            <div class=""camera-info-title"">📷 Camera Info</div>
+            <div class=""camera-info-item"">
+                <span class=""camera-info-label"">Bearing:</span>
+                <span class=""camera-info-value"" id=""bearingValue"">0°</span>
+            </div>
+            <div class=""camera-info-item"">
+                <span class=""camera-info-label"">Pitch:</span>
+                <span class=""camera-info-value"" id=""pitchValue"">0°</span>
+            </div>
+            <div class=""camera-info-item"">
+                <span class=""camera-info-label"">Zoom:</span>
+                <span class=""camera-info-value"" id=""zoomValue"">13.0</span>
+            </div>
+        </div>
+        <div class=""toggle-3d"" id=""toggle3d"">
+            <span>🏢 3D Buildings</span>
+            <div class=""toggle-switch"" id=""toggleSwitch"">
+                <div class=""toggle-knob""></div>
+            </div>
+        </div>
+        <button class=""reset-button"" id=""resetBtn"" title=""Reset camera view (Bearing=0, Pitch=0)"">🧭 Reset View</button>
+        <div class=""update-indicator"" id=""indicator"">Initializing...</div>
+    </div>
+    <div class=""debug-log"" id=""debugLog""></div>
     <script>
-        let map = null;
-        let markers = [];
-        let routeLayer = null;
-        let lastState = null;
-        let eventSource = null;
+        let map;
+        let currentMarkers = [];
+        let currentRoute = null;
         let debugMode = false;
+        let is3DEnabled = false;
+        let initialZoom = 13;
 
+        // Map style URLs for different views
+        const mapStyles = {
+            0: 'https://tiles.openfreemap.org/styles/liberty',          // Default - OSM Liberty style
+            1: 'https://tiles.openfreemap.org/styles/liberty',          // Map3D (same base, add 3D later)
+            2: 'https://tiles.openfreemap.org/styles/dark',             // Dark theme
+            3: 'https://tiles.openfreemap.org/styles/liberty',          // Outdoors
+            4: 'https://tiles.openfreemap.org/styles/liberty',          // Cycling
+            5: 'https://tiles.openfreemap.org/styles/liberty'           // Transit
+        };
 
-        function log(msg) {
+        function debugLog(message) {
             if (!debugMode) return;
-            
-            const debug = document.getElementById('debug');
+            const log = document.getElementById('debugLog');
             const time = new Date().toLocaleTimeString();
-            debug.innerHTML = `[${time}] ${msg}<br>` + debug.innerHTML;
-            console.log(`[${time}] ${msg}`);
+            log.innerHTML = '[' + time + '] ' + message + '<br>' + log.innerHTML;
         }
 
-        function initMap() {
-            map = L.map('map').setView([35.6586, 139.7454], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
-            }).addTo(map);
-            log('Map initialized');
+        function updateCameraInfo() {
+            if (!map) return;
+            const bearing = map.getBearing();
+            const pitch = map.getPitch();
+            const zoom = map.getZoom();
+            
+            document.getElementById('bearingValue').textContent = bearing.toFixed(0) + '°';
+            document.getElementById('pitchValue').textContent = pitch.toFixed(0) + '°';
+            document.getElementById('zoomValue').textContent = zoom.toFixed(1);
         }
 
-        function updateMap(state) {
-            if (!map) {
-                log('ERROR: map is null');
+        function toggle3DBuildings() {
+            is3DEnabled = !is3DEnabled;
+            const toggleSwitch = document.getElementById('toggleSwitch');
+            
+            if (is3DEnabled) {
+                toggleSwitch.classList.add('active');
+                enable3DFeatures();
+                debugLog('3D buildings enabled via toggle');
+            } else {
+                toggleSwitch.classList.remove('active');
+                remove3DBuildingsFromStyle();
+                debugLog('3D buildings disabled via toggle');
+            }
+        }
+
+        function getMapStyle(view) {
+            return mapStyles[view] || mapStyles[0];
+        }
+
+        function is3DView(view) {
+            return view === 1; // Map3D
+        }
+
+        function initMap(state) {
+            debugLog('Initializing map... View: ' + state.view);
+            
+            initialZoom = state.zoom;
+            
+            // Create map
+            map = new maplibregl.Map({
+                container: 'map',
+                style: getMapStyle(state.view),
+                center: [state.longitude, state.latitude],
+                zoom: state.zoom,
+                pitch: state.pitch || 0,
+                bearing: state.bearing || 0
+            });
+
+
+            // Add scale control
+            map.addControl(new maplibregl.ScaleControl());
+
+            // Reset button handler
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                map.flyTo({
+                    pitch: 0,
+                    bearing: 0,
+                    duration: 1000
+                });
+                debugLog('View reset to default');
+            });
+
+            map.on('load', () => {
+                debugLog('Map loaded');
+                
+                // Handle 3D buildings based on view mode
+                const is3D = is3DView(state.view);
+                is3DEnabled = is3D;
+                
+                // Update toggle switch UI
+                const toggleSwitch = document.getElementById('toggleSwitch');
+                if (is3DEnabled) {
+                    toggleSwitch.classList.add('active');
+                }
+                
+                if (is3D) {
+                    enable3DFeatures();
+                } else {
+                    // Remove any 3D building layers that might exist in the style
+                    remove3DBuildingsFromStyle();
+                }
+                
+                updateMapState(state);
+                updateCameraInfo();
+                updateIndicator('Ready');
+            });
+
+            map.on('error', (e) => {
+                debugLog('Map error: ' + e.error.message);
+            });
+
+            // Update camera info on map movement
+            map.on('move', updateCameraInfo);
+            map.on('zoom', updateCameraInfo);
+            map.on('rotate', updateCameraInfo);
+            map.on('pitch', updateCameraInfo);
+
+            // 3D toggle button handler
+            document.getElementById('toggle3d').addEventListener('click', toggle3DBuildings);
+        }
+
+        function enable3DFeatures() {
+            debugLog('Enabling 3D features...');
+            
+            // Simple 3D buildings using standard OSM data
+            // Wait for style to load, then add 3D layer
+            if (!map.getSource('openmaptiles')) {
+                debugLog('OpenMapTiles source not found, 3D buildings may not be available');
                 return;
             }
+            
+            try {
+                map.addLayer({
+                    'id': '3d-buildings',
+                    'source': 'openmaptiles',
+                    'source-layer': 'building',
+                    'type': 'fill-extrusion',
+                    'minzoom': 14,
+                    'paint': {
+                        'fill-extrusion-color': '#ccc',
+                        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 5],
+                        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+                        'fill-extrusion-opacity': 0.6
+                    }
+                });
+                debugLog('3D buildings layer added');
+            } catch (e) {
+                debugLog('Error adding 3D buildings: ' + e.message);
+            }
+        }
 
-            // Update debug mode
-            if (state.debugMode !== debugMode) {
-                debugMode = state.debugMode;
-                const debugEl = document.getElementById('debug');
-                if (debugMode) {
-                    debugEl.classList.add('visible');
-                    log('Debug mode enabled');
-                } else {
-                    debugEl.classList.remove('visible');
+        function remove3DBuildingsFromStyle() {
+            debugLog('Removing 3D building layers...');
+            
+            // Check all layers and remove any 3D building layers
+            const style = map.getStyle();
+            if (!style || !style.layers) return;
+            
+            const buildingLayerPatterns = ['3d-building', 'building-3d', 'building-extrusion'];
+            
+            style.layers.forEach(layer => {
+                if (layer.type === 'fill-extrusion' || 
+                    buildingLayerPatterns.some(pattern => layer.id.toLowerCase().includes(pattern))) {
+                    try {
+                        map.removeLayer(layer.id);
+                        debugLog('Removed 3D layer: ' + layer.id);
+                    } catch (e) {
+                        debugLog('Could not remove layer ' + layer.id + ': ' + e.message);
+                    }
                 }
+            });
+        }
+
+        function updateMapState(state) {
+            debugLog('Updating map state... View: ' + state.view);
+            debugMode = state.debugMode;
+            document.getElementById('debugLog').className = debugMode ? 'debug-log visible' : 'debug-log';
+
+            // Clear existing markers
+            currentMarkers.forEach(marker => marker.remove());
+            currentMarkers = [];
+
+            // Clear existing route
+            if (currentRoute) {
+                if (map.getLayer('route')) map.removeLayer('route');
+                if (map.getSource('route')) map.removeSource('route');
+                currentRoute = null;
             }
 
-            const stateStr = JSON.stringify(state);
-            if (stateStr === lastState) {
-                return; // No change
+            // Handle 3D buildings layer based on view mode
+            const is3D = is3DView(state.view);
+            is3DEnabled = is3D;
+            
+            // Update toggle switch UI
+            const toggleSwitch = document.getElementById('toggleSwitch');
+            if (is3DEnabled) {
+                toggleSwitch.classList.add('active');
+            } else {
+                toggleSwitch.classList.remove('active');
             }
             
-            log(`Updating map: ${state.latitude}, ${state.longitude} @ zoom ${state.zoom}`);
-            lastState = stateStr;
+            if (!is3D && map.getLayer('3d-buildings')) {
+                // Remove 3D buildings layer when switching to 2D/Default
+                map.removeLayer('3d-buildings');
+                debugLog('3D buildings layer removed');
+            }
 
-            // Update view with animation control
-            // If duration > 0, use flyTo for smooth animation (zoom out → move → zoom in)
-            // If duration = 0, use setView for instant movement
-            const shouldAnimate = state.animate && state.duration > 0;
-            const durationInSeconds = state.duration || 1.0;
-            
-            if (shouldAnimate) {
-                // Use flyTo for smooth, dramatic animation (especially for long distances)
-                map.flyTo([state.latitude, state.longitude], state.zoom, {
-                    animate: true,
-                    duration: durationInSeconds
+            // Calculate camera angles
+            const targetPitch = state.pitch !== undefined ? state.pitch : (is3D ? 60 : 0);
+            const targetBearing = state.bearing !== undefined ? state.bearing : 0;
+
+            // Add markers
+            if (state.markers && state.markers.length > 0) {
+                debugLog(`Adding ${state.markers.length} markers`);
+                state.markers.forEach(marker => {
+                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color);
+                });
+                
+                // Fit bounds to show all markers
+                const bounds = new maplibregl.LngLatBounds();
+                state.markers.forEach(marker => {
+                    bounds.extend([marker.longitude, marker.latitude]);
+                });
+                map.fitBounds(bounds, { 
+                    padding: 50, 
+                    animate: state.animate, 
+                    duration: state.duration * 1000,
+                    pitch: targetPitch,
+                    bearing: targetBearing
+                });
+            } else if (state.marker) {
+                // Single marker
+                debugLog(`Adding single marker: ${state.marker}`);
+                addMarker(state.longitude, state.latitude, state.marker, '#dc3545');
+                flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
+            } else {
+                // Just move to location
+                flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
+            }
+
+            // Add route markers
+            if (state.routeMarkers && state.routeMarkers.length > 0) {
+                debugLog(`Adding ${state.routeMarkers.length} route markers`);
+                state.routeMarkers.forEach(marker => {
+                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color);
+                });
+            }
+
+            // Add route line
+            if (state.routeCoordinates && state.routeCoordinates.length > 0) {
+                debugLog(`Adding route with ${state.routeCoordinates.length} points`);
+                addRoute(state.routeCoordinates, state.routeColor || '#0066ff', state.routeWidth || 4);
+                
+                // Fit bounds to route
+                const bounds = new maplibregl.LngLatBounds();
+                state.routeCoordinates.forEach(coord => {
+                    bounds.extend(coord);
+                });
+                map.fitBounds(bounds, { 
+                    padding: 50, 
+                    animate: state.animate, 
+                    duration: state.duration * 1000,
+                    pitch: targetPitch,
+                    bearing: targetBearing
+                });
+            }
+
+            // Enable 3D if needed
+            if (is3D && map.isStyleLoaded() && !map.getLayer('3d-buildings')) {
+                enable3DFeatures();
+            }
+
+            updateCameraInfo();
+            updateIndicator('Updated');
+        }
+
+        function addMarker(lng, lat, label, color) {
+            const el = document.createElement('div');
+            el.className = 'marker';
+            el.style.width = '20px';
+            el.style.height = '20px';
+            el.style.borderRadius = '50%';
+            el.style.backgroundColor = color || '#dc3545';
+            el.style.border = '2px solid white';
+            el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+
+            const marker = new maplibregl.Marker(el)
+                .setLngLat([lng, lat])
+                .addTo(map);
+
+            if (label) {
+                const popup = new maplibregl.Popup({ offset: 25 })
+                    .setHTML(`<strong>${label}</strong>`);
+                marker.setPopup(popup);
+            }
+
+            currentMarkers.push(marker);
+        }
+
+        function addRoute(coordinates, color, width) {
+            map.addSource('route', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'Feature',
+                    'properties': {},
+                    'geometry': {
+                        'type': 'LineString',
+                        'coordinates': coordinates
+                    }
+                }
+            });
+
+            map.addLayer({
+                'id': 'route',
+                'type': 'line',
+                'source': 'route',
+                'layout': {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': color,
+                    'line-width': width
+                }
+            });
+
+            currentRoute = 'route';
+        }
+
+        function flyTo(lng, lat, zoom, animate, duration, pitch, bearing) {
+            if (animate) {
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: zoom,
+                    pitch: pitch || 0,
+                    bearing: bearing || 0,
+                    duration: duration * 1000
                 });
             } else {
-                // Use setView for instant movement (no animation)
-                map.setView([state.latitude, state.longitude], state.zoom, {
-                    animate: false
+                map.jumpTo({
+                    center: [lng, lat],
+                    zoom: zoom,
+                    pitch: pitch || 0,
+                    bearing: bearing || 0
                 });
-            }
-            // Clear all markers
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-
-            // Add multiple markers if provided
-            if (state.markers && state.markers.length > 0) {
-                state.markers.forEach(markerData => {
-                    const color = markerData.color;
-                    
-                    // Use CircleMarker for colored markers
-                    const marker = L.circleMarker(
-                        [markerData.latitude, markerData.longitude],
-                        {
-                            radius: 10,
-                            fillColor: color,
-                            color: '#fff',
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        }
-                    ).addTo(map);
-                    
-                    if (markerData.label) {
-                        marker.bindPopup(markerData.label);
-                    }
-                    
-                    markers.push(marker);
-                    log(`Marker added: ${markerData.label || 'unnamed'} at ${markerData.latitude}, ${markerData.longitude}`);
-                });
-                
-                // Open first marker popup if available
-                if (markers.length > 0 && state.markers[0].label) {
-                    markers[0].openPopup();
-                }
-            }
-            // Add route markers if provided (default pin icons)
-            if (state.routeMarkers && state.routeMarkers.length > 0) {
-                state.routeMarkers.forEach(markerData => {
-                    const marker = L.marker([markerData.latitude, markerData.longitude])
-                        .addTo(map);
-                    
-                    if (markerData.label) {
-                        marker.bindPopup(markerData.label);
-                    }
-                    
-                    markers.push(marker);
-                    log(`Route marker added: ${markerData.label || 'unnamed'} at ${markerData.latitude}, ${markerData.longitude}`);
-                });
-                
-                // Open first route marker popup if available
-                if (state.routeMarkers.length > 0 && state.routeMarkers[0].label) {
-                    // Find the first route marker in the markers array
-                    const firstRouteMarkerIndex = markers.length - state.routeMarkers.length;
-                    if (firstRouteMarkerIndex >= 0) {
-                        markers[firstRouteMarkerIndex].openPopup();
-                    }
-                }
-            }
-            // Add single marker if provided (backward compatibility)
-            else if (state.marker) {
-                const marker = L.marker([state.latitude, state.longitude])
-                    .addTo(map)
-                    .bindPopup(state.marker)
-                    .openPopup();
-                markers.push(marker);
-                log(`Marker added: ${state.marker}`);
-            }
-
-            // Update route
-            if (routeLayer) {
-                map.removeLayer(routeLayer);
-                routeLayer = null;
-            }
-
-            if (state.routeCoordinates && state.routeCoordinates.length > 0) {
-                // Convert [lon, lat] to [lat, lon] for Leaflet
-                const latLngs = state.routeCoordinates.map(coord => [coord[1], coord[0]]);
-                
-                routeLayer = L.polyline(latLngs, {
-                    color: state.routeColor || '#0066ff',
-                    weight: state.routeWidth || 4,
-                    opacity: 0.7
-                }).addTo(map);
-                
-                log(`Route added with ${state.routeCoordinates.length} points`);
             }
         }
 
-        function connectSSE() {
-            log('Connecting to SSE endpoint: /api/events');
-            eventSource = new EventSource('/api/events');
-            
-            eventSource.onmessage = function(event) {
-                try {
-                    const state = JSON.parse(event.data);
-                    log(`SSE received: lat=${state.latitude}, lng=${state.longitude}, zoom=${state.zoom}`);
-                    updateMap(state);
-                } catch (err) {
-                    log(`ERROR: Failed to parse SSE data: ${err.message}`);
-                    console.error('Failed to parse SSE data:', err);
-                }
-            };
-            
-            eventSource.onerror = function(err) {
-                log(`SSE connection error: ${err}`);
-                console.error('SSE connection error:', err);
-                
-                // Attempt to reconnect after 3 seconds
+        function updateIndicator(text) {
+            const indicator = document.getElementById('indicator');
+            indicator.textContent = text;
+            setTimeout(() => {
+                indicator.style.opacity = '0';
                 setTimeout(() => {
-                    log('Attempting to reconnect SSE...');
-                    connectSSE();
-                }, 3000);
-            };
-            
-            eventSource.onopen = function() {
-                log('SSE connection established');
-            };
+                    indicator.style.opacity = '1';
+                }, 200);
+            }, 100);
         }
 
-        // Initialize
-        log('Starting PowerShell.Map');
+        // Connect to SSE
+        const eventSource = new EventSource('/api/events');
         
-        // Fetch initial state first, then establish SSE connection
+        eventSource.onopen = () => {
+            debugLog('SSE connected');
+        };
+
+        eventSource.onmessage = (event) => {
+            try {
+                const state = JSON.parse(event.data);
+                debugLog('Received state update');
+                
+                if (!map) {
+                    initMap(state);
+                } else {
+                    updateMapState(state);
+                }
+            } catch (e) {
+                debugLog('Error parsing state: ' + e.message);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            debugLog('SSE error');
+            updateIndicator('Connection lost');
+        };
+
+        // Initial fetch
         fetch('/api/state')
             .then(response => response.json())
             .then(state => {
-                log('Initial state loaded from /api/state');
-                initMap();
-                updateMap(state);
-                connectSSE();
+                debugLog('Initial state loaded');
+                initMap(state);
             })
-            .catch(err => {
-                log(`ERROR: Failed to fetch initial state: ${err.message}`);
-                console.error('Failed to fetch initial state:', err);
-                // Fall back to SSE-only mode
-                initMap();
-                connectSSE();
+            .catch(error => {
+                debugLog('Error loading initial state: ' + error.message);
             });
     </script>
 </body>
