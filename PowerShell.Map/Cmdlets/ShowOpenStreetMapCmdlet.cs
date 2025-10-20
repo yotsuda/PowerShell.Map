@@ -74,6 +74,11 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     [ValidateRange(0, 85)]
     public double Pitch { get; set; } = 0;
 
+    /// <summary>
+    /// Optional description to display for the location (only for single location display)
+    /// </summary>
+    [Parameter]
+    public string? Description { get; set; }
     // [Parameter]
     private SwitchParameter DebugMode { get; set; }
 
@@ -285,7 +290,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     label = Location[0];
                 }
 
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
                 // マーカー情報を出力
@@ -312,7 +317,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 string? marker = Marker ?? currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration, Enable3D, Bearing, Pitch));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
             }
         }

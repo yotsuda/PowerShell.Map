@@ -578,8 +578,28 @@ public static class MapHtml
             const descriptionOverlay = document.getElementById('location-description');
             descriptionOverlay.classList.remove('visible'); // Hide during animation
             
+            // Handle single location description
             if (state.locationDescription) {
                 descriptionOverlay.textContent = state.locationDescription;
+                
+                // Show description after animation completes
+                const delayMs = state.animate ? (state.duration * 1000) : 0;
+                setTimeout(() => {
+                    descriptionOverlay.classList.add('visible');
+                }, delayMs);
+            }
+            // Handle route descriptions (From and To)
+            else if (state.routeFromDescription || state.routeToDescription) {
+                let descriptionText = '';
+                if (state.routeFromDescription) {
+                    descriptionText += '🚀 ' + state.routeFromDescription;
+                }
+                if (state.routeToDescription) {
+                    if (descriptionText) descriptionText += '\n';
+                    descriptionText += '🎯 ' + state.routeToDescription;
+                }
+                descriptionOverlay.textContent = descriptionText;
+                descriptionOverlay.style.whiteSpace = 'pre-line'; // Support multi-line
                 
                 // Show description after animation completes
                 const delayMs = state.animate ? (state.duration * 1000) : 0;

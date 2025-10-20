@@ -79,6 +79,17 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     [ValidateRange(0, 85)]
     public double Pitch { get; set; } = 0;
 
+    /// <summary>
+    /// Optional description to display for the starting location
+    /// </summary>
+    [Parameter]
+    public string? FromDescription { get; set; }
+
+    /// <summary>
+    /// Optional description to display for the destination location
+    /// </summary>
+    [Parameter]
+    public string? ToDescription { get; set; }
     // /// <summary>
     // /// Enable debug mode to show detailed logging
     // /// </summary>
@@ -212,7 +223,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, Zoom, false, fromLabel, toLabel, Duration, Enable3D, Bearing, Pitch));
+                routeCoordinates, Color, Width, Zoom, false, fromLabel, toLabel, Duration, Enable3D, Bearing, Pitch, FromDescription, ToDescription));
             WriteVerbose("Map updated with route");
             
             // Output From marker

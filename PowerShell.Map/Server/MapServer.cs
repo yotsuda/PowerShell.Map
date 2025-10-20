@@ -236,7 +236,8 @@ public class MapServer
                            double[][] routeCoordinates, string? color = null, int width = 4, 
                            int? zoom = null, bool debugMode = false,
                            string? fromLocation = null, string? toLocation = null, 
-                           double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0)
+                           double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0,
+                           string? fromDescription = null, string? toDescription = null)
     {
         lock (_lock)
         {
@@ -252,7 +253,6 @@ public class MapServer
                 new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = $"🚀 {fromLocation ?? "Start"}", Color = "green" },
                 new MapMarker { Latitude = toLat, Longitude = toLon, Label = $"🎯 {toLocation ?? "Goal"}", Color = "red" }
             };
-            
             _currentState = new MapState
             {
                 Latitude = centerLat,
@@ -267,7 +267,9 @@ public class MapServer
                 Duration = duration,
                 Enable3D = enable3D,
                 Bearing = bearing,
-                Pitch = pitch
+                Pitch = pitch,
+                RouteFromDescription = fromDescription,
+                RouteToDescription = toDescription
             };
         }
         
@@ -534,4 +536,6 @@ public class MapState
     public double Pitch { get; set; } = 0;    // Camera pitch (0-85 degrees, 0=top-down)
     public double Duration { get; set; } = 1.0;  // Animation duration in seconds
     public string? LocationDescription { get; set; }  // Description to display for current location
+    public string? RouteFromDescription { get; set; }  // Description to display for route starting location
+    public string? RouteToDescription { get; set; }  // Description to display for route destination location
 }
