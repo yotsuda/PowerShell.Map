@@ -186,9 +186,14 @@ public static class MapHtml
             box-shadow: 0 3px 12px rgba(0,0,0,0.6);
             border: 2px solid rgba(255, 255, 255, 0.3);
             text-align: center;
+            cursor: move;
+            user-select: none;
         }
         #location-description.visible {
             display: block;
+        }
+        #location-description.dragging {
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -350,6 +355,9 @@ public static class MapHtml
                 updateMapState(state);
                 updateCameraInfo();
                 updateIndicator('Ready');
+                
+                // Initialize draggable description box
+                initDescriptionDrag();
             });
 
             map.on('error', (e) => {
@@ -367,6 +375,50 @@ public static class MapHtml
 
             // 3D toggle button handler
             document.getElementById('toggle3d').addEventListener('click', toggle3DBuildings);
+        }
+
+        function initDescriptionDrag() {
+            const descBox = document.getElementById('location-description');
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            descBox.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+
+            function dragStart(e) {
+                if (!descBox.classList.contains('visible')) return;
+                
+                initialX = e.clientX - offsetX;
+                initialY = e.clientY - offsetY;
+                isDragging = true;
+                descBox.classList.add('dragging');
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                offsetX = currentX;
+                offsetY = currentY;
+
+                // Remove transform and use absolute positioning
+                descBox.style.transform = 'none';
+                descBox.style.left = `calc(50% + ${currentX}px)`;
+                descBox.style.bottom = `${250 - currentY}px`;
+            }
+
+            function dragEnd() {
+                isDragging = false;
+                descBox.classList.remove('dragging');
+            }
         }
 
         function enable3DFeatures() {
