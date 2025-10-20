@@ -1,4 +1,4 @@
-﻿---
+---
 external help file: PowerShell.Map.dll-Help.xml
 Module Name: PowerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
@@ -66,7 +66,7 @@ Specifies an array of locations to visit in the tour. Each location can be a pla
 ```yaml
 Type: String[]
 Parameter Sets: (All)
-Aliases: Locations
+Aliases:
 
 Required: True
 Position: 0

@@ -8,30 +8,33 @@ schema: 2.0.0
 # Show-OpenStreetMap
 
 ## SYNOPSIS
-Displays an interactive map using OpenStreetMap and Leaflet.js in the default browser.
+Displays an interactive 2D/3D map using OpenStreetMap and MapLibre GL JS in the default browser.
 
 ## SYNTAX
 
 ### Location
 ```
-Show-OpenStreetMap [[-Location] <String[]>] [-Marker <String>] [-Zoom <Int32>] [-Duration <Double>]
- [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Show-OpenStreetMap [[-Location] <String[]>] [-Marker <String>] [-Zoom <Int32>] [-Duration <Double>] [-Enable3D]
+ [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ### Markers
 ```
-Show-OpenStreetMap -Markers <Object[]> [-Zoom <Int32>] [-Duration <Double>]
- [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Show-OpenStreetMap -Markers <Object[]> [-Zoom <Int32>] [-Duration <Double>] [-Enable3D] [-Bearing <Double>]
+ [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ### Pipeline
 ```
 Show-OpenStreetMap -Latitude <String> -Longitude <String> [-Label <String>] [-Color <String>] [-Zoom <Int32>]
- [-Duration <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+ [-Duration <Double>] [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Show-OpenStreetMap cmdlet displays an interactive map in your default web browser. You can specify locations using coordinates, place names (geocoding), or display multiple markers. The map is powered by OpenStreetMap and Leaflet.js, with a local HTTP server running on port 8765.
+The Show-OpenStreetMap cmdlet displays an interactive map in your default web browser. You can specify locations using coordinates, place names (geocoding), or display multiple markers. The map is powered by OpenStreetMap and MapLibre GL JS, with a local HTTP server running on port 8765.
+
+The cmdlet supports 3D visualization of buildings and terrain when using the -Enable3D parameter. The 3D view includes dynamically scaled terrain exaggeration (0.3x to 2.0x based on zoom level) for natural-looking mountain visualization, and extruded building shapes in urban areas.
 
 ## EXAMPLES
 
@@ -106,6 +109,28 @@ Show-OpenStreetMap -Markers $markers
 ```
 
 Imports locations from a CSV file, converts to hashtable format, and displays as markers.
+Imports locations from a CSV file, converts to hashtable format, and displays as markers.
+
+### Example 10: Display 3D map with buildings and terrain
+```powershell
+Show-OpenStreetMap "Tokyo" -Enable3D
+```
+
+Displays Tokyo in 3D mode with buildings and terrain elevation. The camera is automatically tilted to 60 degrees for optimal 3D viewing.
+
+### Example 11: Display mountains with custom camera angle
+```powershell
+Show-OpenStreetMap "35.3606,138.7274" -Marker "Mt. Fuji" -Enable3D -Zoom 11 -Pitch 70 -Bearing 45
+```
+
+Displays Mt. Fuji in 3D with a 70-degree pitch (tilt) and 45-degree bearing (rotation) for dramatic terrain visualization.
+
+### Example 12: Display famous mountains in 3D
+```powershell
+Show-OpenStreetMap "45.9763,7.6586" -Marker "Matterhorn" -Enable3D -Zoom 12 -Pitch 70
+```
+
+Displays the Matterhorn mountain in the Alps with 3D terrain visualization.
 
 ## PARAMETERS
 
@@ -268,6 +293,68 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Bearing
+Specifies the camera bearing (rotation) in degrees (0-360). The bearing represents the compass direction the camera is pointing:
+- 0 degrees = North (default)
+- 90 degrees = East
+- 180 degrees = South
+- 270 degrees = West
+
+This parameter is useful for orienting the view of 3D terrain features.
+
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Enable3D
+Enables 3D visualization of buildings and terrain. When enabled:
+- Buildings are rendered as 3D extruded shapes (at zoom level 14 and above)
+- Terrain elevation data is displayed with appropriate exaggeration for visibility
+- Default pitch angle is set to 60 degrees for optimal 3D viewing
+- Terrain exaggeration scales dynamically based on zoom level (0.3x to 2.0x)
+
+The 3D view can be toggled on/off using the browser interface, and the camera view can be reset using the "Reset View" button.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Pitch
+Specifies the camera pitch (tilt angle) in degrees (0-85). The pitch controls how much the camera is tilted:
+- 0 degrees = Top-down view (default for 2D maps)
+- 60 degrees = Default for 3D view (automatically set when -Enable3D is used without explicit -Pitch)
+- 85 degrees = Almost horizontal view
+
+Higher pitch values provide a more dramatic 3D perspective, especially for mountainous terrain. This parameter is most useful when -Enable3D is enabled.
+
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
@@ -278,8 +365,8 @@ You can pipe an array of hashtables containing marker information to this cmdlet
 
 ## OUTPUTS
 
-### None
-This cmdlet does not generate any output.
+### PowerShell.Map.Server.MapMarker
+This cmdlet outputs MapMarker objects containing information about the displayed locations, including coordinates, labels, geocoding status, and source information.
 
 ## NOTES
 - The map server runs on http://localhost:8765/
@@ -287,9 +374,14 @@ This cmdlet does not generate any output.
 - Nominatim has a usage policy of 1 request per second
 - The map updates in real-time when you run the cmdlet multiple times
 - The browser tab is automatically opened when the server starts
+- 3D terrain data is sourced from AWS Terrarium tiles (https://registry.opendata.aws/terrain-tiles/)
+- 3D buildings are available at zoom level 14 and above in supported areas
+- Terrain exaggeration scales dynamically: 0.3x (urban areas) to 2.0x (mountain regions)
+- The 3D toggle and camera reset controls are available in the browser interface
 
 ## RELATED LINKS
 
 [Show-OpenStreetMapRoute](Show-OpenStreetMapRoute.md)
+[Start-OpenStreetMapTour](Start-OpenStreetMapTour.md)
 [OpenStreetMap](https://www.openstreetmap.org/)
-[Leaflet.js](https://leafletjs.com/)
+[MapLibre GL JS](https://maplibre.org/)
