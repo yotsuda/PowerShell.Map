@@ -12,10 +12,19 @@ namespace PowerShell.Map.Cmdlets;
 public class StartOpenStreetMapTourCmdlet : MapCmdletBase
 {
     /// <summary>
-    /// Array of locations to visit in the tour (place names or coordinates)
+    /// Array of locations to visit in the tour (place names or coordinates).
+    /// Use simple strings for locations without descriptions.
     /// </summary>
-    [Parameter(Position = 0, Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "Simple", Position = 0, Mandatory = true, ValueFromPipeline = true)]
     public string[]? Location { get; set; }
+
+    /// <summary>
+    /// Array of structured locations with optional descriptions.
+    /// Each element should be a hashtable with 'Location' and optional 'Description' keys.
+    /// Example: @{ Location = "Tokyo"; Description = "Capital of Japan" }
+    /// </summary>
+    [Parameter(ParameterSetName = "WithDescription", Mandatory = true, ValueFromPipeline = true)]
+    public object[]? Locations { get; set; }
 
     /// <summary>
     /// Zoom level for each location (1-19, default: 13)
@@ -64,19 +73,56 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
     // [Parameter]
     private SwitchParameter DebugMode { get; set; }
 
-    private readonly List<string> _allLocations = new();
+    private readonly List<TourLocation> _tourLocations = new();
 
     protected override void ProcessRecord()
     {
+        // Simple parameter set (just location strings)
         if (Location != null)
         {
-            _allLocations.AddRange(Location);
+            foreach (var loc in Location)
+            {
+                _tourLocations.Add(new TourLocation { Location = loc });
+            }
+        }
+        
+        // WithDescription parameter set (structured objects)
+        if (Locations != null)
+        {
+            foreach (var item in Locations)
+            {
+                TourLocation? tourLoc = null;
+                
+                // Handle Hashtable
+                if (item is System.Collections.Hashtable ht)
+                {
+                    tourLoc = new TourLocation
+                    {
+                        Location = ht["Location"]?.ToString() ?? string.Empty,
+                        Description = ht["Description"]?.ToString()
+                    };
+                }
+                // Handle PSObject
+                else if (item is PSObject psObj)
+                {
+                    tourLoc = new TourLocation
+                    {
+                        Location = psObj.Properties["Location"]?.Value?.ToString() ?? string.Empty,
+                        Description = psObj.Properties["Description"]?.Value?.ToString()
+                    };
+                }
+                
+                if (tourLoc != null && !string.IsNullOrEmpty(tourLoc.Location))
+                {
+                    _tourLocations.Add(tourLoc);
+                }
+            }
         }
     }
 
     protected override void EndProcessing()
     {
-        if (_allLocations.Count == 0)
+        if (_tourLocations.Count == 0)
         {
             WriteWarning("No locations provided for tour");
             return;
@@ -93,32 +139,32 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                 WriteVerbose("3D mode automatically enabled due to Bearing/Pitch parameters");
             }
             
-            WriteVerbose($"Starting map tour with {_allLocations.Count} locations");
+            WriteVerbose($"Starting map tour with {_tourLocations.Count} locations");
             
-            for (int i = 0; i < _allLocations.Count; i++)
+            for (int i = 0; i < _tourLocations.Count; i++)
             {
-                var location = _allLocations[i];
-                WriteVerbose($"[{i + 1}/{_allLocations.Count}] Visiting: {location}");
+                var tourLocation = _tourLocations[i];
+                WriteVerbose($"[{i + 1}/{_tourLocations.Count}] Visiting: {tourLocation.Location}");
 
-                if (!LocationHelper.TryParseLocation(location, out double lat, out double lon,
+                if (!LocationHelper.TryParseLocation(tourLocation.Location, out double lat, out double lon,
                     msg => WriteVerbose(msg), msg => WriteWarning(msg)))
                 {
-                    WriteWarning($"Could not parse location: {location}, skipping");
+                    WriteWarning($"Could not parse location: {tourLocation.Location}, skipping");
                     
                     // Output failed marker
                     WriteObject(new MapMarker
                     {
                         Step = i + 1,
-                        TotalSteps = _allLocations.Count,
-                        Location = location,
+                        TotalSteps = _tourLocations.Count,
+                        Location = tourLocation.Location,
                         Status = "Failed",
                         GeocodingSource = "Unknown"
                     });
                     continue;
                 }
 
-                string label = location;
-                if (location.Contains(','))
+                string label = tourLocation.Location;
+                if (tourLocation.Location.Contains(','))
                 {
                     // Try reverse geocoding for coordinates
                     if (LocationHelper.TryReverseGeocode(lat, lon, out string? reversedName, 
@@ -129,19 +175,19 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                 }
 
                 // Move to location with animation (always animated in tour mode)
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch, tourLocation.Description));
                 
                 // Output progress info
                 WriteObject(new MapMarker
                 {
                     Step = i + 1,
-                    TotalSteps = _allLocations.Count,
-                    Location = location,
+                    TotalSteps = _tourLocations.Count,
+                    Location = tourLocation.Location,
                     Latitude = lat,
                     Longitude = lon,
                     Label = label,
                     Status = "Success",
-                    GeocodingSource = location.Contains(',') ? "Coordinates" : "Nominatim"
+                    GeocodingSource = tourLocation.Location.Contains(',') ? "Coordinates" : "Nominatim"
                 });
                 
                 // Wait at location (transition + pause time)

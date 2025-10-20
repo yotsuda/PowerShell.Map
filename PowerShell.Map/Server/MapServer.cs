@@ -145,7 +145,7 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0)
+    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0, string? locationDescription = null)
     {
         lock (_lock)
         {
@@ -163,11 +163,24 @@ public class MapServer
                 Duration = duration,
                 Enable3D = enable3D,
                 Bearing = bearing,
-                Pitch = adjustedPitch
+                Pitch = adjustedPitch,
+                LocationDescription = locationDescription
             };
         }
         
         NotifyClients(); // Notify if clients are connected, but state is always updated
+        return true;
+    }
+
+    public bool SetLocationDescription(string? description)
+    {
+        lock (_lock)
+        {
+            if (_currentState == null) return false;
+            _currentState.LocationDescription = description;
+        }
+        
+        NotifyClients();
         return true;
     }
 
@@ -520,4 +533,5 @@ public class MapState
     public double Bearing { get; set; } = 0;  // Camera bearing (0-360 degrees, 0=North)
     public double Pitch { get; set; } = 0;    // Camera pitch (0-85 degrees, 0=top-down)
     public double Duration { get; set; } = 1.0;  // Animation duration in seconds
+    public string? LocationDescription { get; set; }  // Description to display for current location
 }

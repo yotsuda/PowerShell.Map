@@ -167,9 +167,33 @@ public static class MapHtml
         .toggle-switch.active .toggle-knob {
             transform: translateX(20px);
         }
+        #location-description {
+            position: absolute;
+            bottom: 250px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.92);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 4px;
+            min-width: 280px;
+            max-width: 400px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+        }
+        #location-description.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
+    <div id=""location-description""></div>
     <div id=""map""></div>
     <div class=""header-container"">
         <a href=""https://github.com/yotsuda/PowerShell.Map#readme"" target=""_blank"" rel=""noopener noreferrer"" class=""logo"">🗺️ PowerShell.Map</a>
@@ -302,6 +326,7 @@ public static class MapHtml
                 });
                 debugLog('View reset to default');
             });
+
 
             map.on('load', () => {
                 debugLog('Map loaded');
@@ -548,6 +573,20 @@ public static class MapHtml
 
 
             updateCameraInfo();
+
+            // Update location description (show after animation completes)
+            const descriptionOverlay = document.getElementById('location-description');
+            descriptionOverlay.classList.remove('visible'); // Hide during animation
+            
+            if (state.locationDescription) {
+                descriptionOverlay.textContent = state.locationDescription;
+                
+                // Show description after animation completes
+                const delayMs = state.animate ? (state.duration * 1000) : 0;
+                setTimeout(() => {
+                    descriptionOverlay.classList.add('visible');
+                }, delayMs);
+            }
             updateIndicator('Updated');
         }
 
