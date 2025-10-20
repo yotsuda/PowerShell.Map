@@ -206,16 +206,6 @@ public static class MapHtml
         let is3DEnabled = false;
         let initialZoom = 13;
 
-        // Map style URLs for different views
-        const mapStyles = {
-            0: 'https://tiles.openfreemap.org/styles/liberty',          // Default - OSM Liberty style
-            1: 'https://tiles.openfreemap.org/styles/liberty',          // Map3D (same base, add 3D later)
-            2: 'https://tiles.openfreemap.org/styles/dark',             // Dark theme
-            3: 'https://tiles.openfreemap.org/styles/liberty',          // Outdoors
-            4: 'https://tiles.openfreemap.org/styles/liberty',          // Cycling
-            5: 'https://tiles.openfreemap.org/styles/liberty'           // Transit
-        };
-
         function debugLog(message) {
             if (!debugMode) return;
             const log = document.getElementById('debugLog');
@@ -249,23 +239,16 @@ public static class MapHtml
             }
         }
 
-        function getMapStyle(view) {
-            return mapStyles[view] || mapStyles[0];
-        }
-
-        function is3DView(view) {
-            return view === 1; // Map3D
-        }
 
         function initMap(state) {
-            debugLog('Initializing map... View: ' + state.view);
+            debugLog('Initializing map... Enable3D: ' + state.enable3DBuildings);
             
             initialZoom = state.zoom;
             
             // Create map
             map = new maplibregl.Map({
                 container: 'map',
-                style: getMapStyle(state.view),
+                style: 'https://tiles.openfreemap.org/styles/liberty',
                 center: [state.longitude, state.latitude],
                 zoom: state.zoom,
                 pitch: state.pitch || 0,
@@ -289,9 +272,8 @@ public static class MapHtml
             map.on('load', () => {
                 debugLog('Map loaded');
                 
-                // Handle 3D buildings based on view mode
-                const is3D = is3DView(state.view);
-                is3DEnabled = is3D;
+                // Handle 3D buildings based on enable3DBuildings flag
+                is3DEnabled = state.enable3DBuildings;
                 
                 // Update toggle switch UI
                 const toggleSwitch = document.getElementById('toggleSwitch');
@@ -299,7 +281,7 @@ public static class MapHtml
                     toggleSwitch.classList.add('active');
                 }
                 
-                if (is3D) {
+                if (state.enable3DBuildings) {
                     enable3DFeatures();
                 } else {
                     // Remove any 3D building layers that might exist in the style
@@ -378,9 +360,14 @@ public static class MapHtml
         }
 
         function updateMapState(state) {
-            debugLog('Updating map state... View: ' + state.view);
+            debugLog('Updating map state... Enable3D: ' + state.enable3DBuildings);
             debugMode = state.debugMode;
             document.getElementById('debugLog').className = debugMode ? 'debug-log visible' : 'debug-log';
+            
+            updateMapContent(state);
+        }
+
+        function updateMapContent(state) {
 
             // Clear existing markers
             currentMarkers.forEach(marker => marker.remove());
@@ -393,9 +380,8 @@ public static class MapHtml
                 currentRoute = null;
             }
 
-            // Handle 3D buildings layer based on view mode
-            const is3D = is3DView(state.view);
-            is3DEnabled = is3D;
+            // Handle 3D buildings layer
+            is3DEnabled = state.enable3DBuildings;
             
             // Update toggle switch UI
             const toggleSwitch = document.getElementById('toggleSwitch');
@@ -405,14 +391,20 @@ public static class MapHtml
                 toggleSwitch.classList.remove('active');
             }
             
-            if (!is3D && map.getLayer('3d-buildings')) {
-                // Remove 3D buildings layer when switching to 2D/Default
-                map.removeLayer('3d-buildings');
-                debugLog('3D buildings layer removed');
+            // Add or remove 3D buildings layer
+            if (state.enable3DBuildings) {
+                if (!map.getLayer('3d-buildings')) {
+                    enable3DFeatures();
+                }
+            } else {
+                if (map.getLayer('3d-buildings')) {
+                    map.removeLayer('3d-buildings');
+                    debugLog('3D buildings layer removed');
+                }
             }
 
             // Calculate camera angles
-            const targetPitch = state.pitch !== undefined ? state.pitch : (is3D ? 60 : 0);
+            const targetPitch = state.pitch !== undefined ? state.pitch : (state.enable3DBuildings ? 60 : 0);
             const targetBearing = state.bearing !== undefined ? state.bearing : 0;
 
             // Add markers
@@ -471,10 +463,6 @@ public static class MapHtml
                 });
             }
 
-            // Enable 3D if needed
-            if (is3D && map.isStyleLoaded() && !map.getLayer('3d-buildings')) {
-                enable3DFeatures();
-            }
 
             updateCameraInfo();
             updateIndicator('Updated');
