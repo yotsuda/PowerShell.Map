@@ -250,8 +250,8 @@ public class MapServer
             // Create route markers for From and To locations
             var routeMarkers = new[]
             {
-                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = $"🚀 {fromLocation ?? "Start"}", Color = "green" },
-                new MapMarker { Latitude = toLat, Longitude = toLon, Label = $"🎯 {toLocation ?? "Goal"}", Color = "red" }
+                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = $"?? {fromLocation ?? "Start"}", Color = "green", Description = fromDescription },
+                new MapMarker { Latitude = toLat, Longitude = toLon, Label = $"?? {toLocation ?? "Goal"}", Color = "red", Description = toDescription }
             };
             _currentState = new MapState
             {
@@ -267,9 +267,7 @@ public class MapServer
                 Duration = duration,
                 Enable3D = enable3D,
                 Bearing = bearing,
-                Pitch = pitch,
-                RouteFromDescription = fromDescription,
-                RouteToDescription = toDescription
+                Pitch = pitch
             };
         }
         
@@ -536,6 +534,4 @@ public class MapState
     public double Pitch { get; set; } = 0;    // Camera pitch (0-85 degrees, 0=top-down)
     public double Duration { get; set; } = 1.0;  // Animation duration in seconds
     public string? LocationDescription { get; set; }  // Description to display for current location
-    public string? RouteFromDescription { get; set; }  // Description to display for route starting location
-    public string? RouteToDescription { get; set; }  // Description to display for route destination location
 }

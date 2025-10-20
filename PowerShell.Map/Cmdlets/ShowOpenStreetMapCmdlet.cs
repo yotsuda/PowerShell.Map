@@ -10,23 +10,23 @@ namespace PowerShell.Map.Cmdlets;
 public class ShowOpenStreetMapCmdlet : MapCmdletBase
 {
     // パラメータセット定義
-    private const string LocationSet = "Location";
-    private const string MarkersSet = "Markers";
+    private const string SimpleLocationSet = "SimpleLocation";
+    private const string StructuredLocationSet = "StructuredLocation";
     private const string PipelineSet = "Pipeline";
 
     // 位置指定パラメータ (地名または座標文字列、単数または複数)
-    [Parameter(Position = 0, ParameterSetName = LocationSet)]
+    [Parameter(Position = 0, ParameterSetName = SimpleLocationSet)]
     public string[]? Location { get; set; }
 
     // 単一マーカーのラベル (Location が1つの場合のみ有効)
-    [Parameter(ParameterSetName = LocationSet)]
+    [Parameter(ParameterSetName = SimpleLocationSet)]
     public string? Marker { get; set; }
 
-    // 複数マーカー (Markersパラメータセット専用)
-    // 文字列、Hashtable、MapMarkerオブジェクトすべてに対応
-    [Parameter(ParameterSetName = MarkersSet, Mandatory = true, ValueFromPipeline = true)]
+    // 構造化されたロケーション (Hashtable または PSObject の配列)
+    // 各要素: @{ Location = "地名"; Description = "説明"; Label = "ラベル"; Color = "色" }
+    [Parameter(ParameterSetName = StructuredLocationSet, Mandatory = true, ValueFromPipeline = true)]
     [AllowEmptyCollection]
-    public object[]? Markers { get; set; }
+    public object[]? Locations { get; set; }
 
     // パイプラインからプロパティ名で受け取る（CSVなどから）
     [Parameter(ParameterSetName = PipelineSet, ValueFromPipelineByPropertyName = true, Mandatory = true)]
@@ -114,21 +114,108 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 return; // EndProcessingで一括処理
             }
 
-            // Markersパラメータセットの処理
-            if (ParameterSetName == MarkersSet && Markers != null)
+            // StructuredLocationパラメータセットの処理
+            if (ParameterSetName == StructuredLocationSet && Locations != null)
             {
-                var markerList = MarkerParser.ParseMarkers(Markers, GetMarkerColor, msg => WriteVerbose(msg), msg => WriteWarning(msg));
-
-                if (markerList.Count == 0)
+                var locationList = new List<TourLocation>();
+                
+                foreach (var item in Locations)
                 {
-                    WriteWarning("No valid markers provided in this batch");
+                    TourLocation? tourLoc = null;
+                    
+                    // Handle Hashtable
+                    if (item is Hashtable ht)
+                    {
+                        tourLoc = new TourLocation
+                        {
+                            Location = ht["Location"]?.ToString() ?? string.Empty,
+                            Description = ht["Description"]?.ToString(),
+                            Label = ht["Label"]?.ToString(),
+                            Color = ht["Color"]?.ToString()
+                        };
+                    }
+                    // Handle PSObject
+                    else if (item is PSObject psObj)
+                    {
+                        tourLoc = new TourLocation
+                        {
+                            Location = psObj.Properties["Location"]?.Value?.ToString() ?? string.Empty,
+                            Description = psObj.Properties["Description"]?.Value?.ToString(),
+                            Label = psObj.Properties["Label"]?.Value?.ToString(),
+                            Color = psObj.Properties["Color"]?.Value?.ToString()
+                        };
+                    }
+                    
+                    if (tourLoc != null && !string.IsNullOrEmpty(tourLoc.Location))
+                    {
+                        locationList.Add(tourLoc);
+                    }
+                }
+                
+                if (locationList.Count == 0)
+                {
+                    WriteWarning("No valid locations provided in this batch");
                     return;
                 }
-
-                // パイプラインから来た場合は蓄積する (EndProcessingで一括処理)
-                _pipelineMarkers.AddRange(markerList);
-                WriteVerbose($"Added {markerList.Count} markers to pipeline batch (total: {_pipelineMarkers.Count})");
-                return;
+                
+                // Convert TourLocations to MapMarkers
+                foreach (var tourLoc in locationList)
+                {
+                    bool isCoordStr = CoordinateValidator.IsCoordinateString(tourLoc.Location);
+                    
+                    if (!LocationHelper.TryParseLocation(tourLoc.Location, out double lat, out double lon,
+                        msg => WriteVerbose(msg), msg => WriteWarning(msg)))
+                    {
+                        WriteWarning($"Could not parse location: {tourLoc.Location}, skipping");
+                        _pipelineMarkers.Add(new MapMarker
+                        {
+                            Location = tourLoc.Location,
+                            Status = "Failed",
+                            GeocodingSource = "Unknown"
+                        });
+                        continue;
+                    }
+                    
+                    // Determine label
+                    string markerLabel;
+                    if (!string.IsNullOrEmpty(tourLoc.Label))
+                    {
+                        markerLabel = tourLoc.Label;
+                    }
+                    else if (isCoordStr)
+                    {
+                        // Try reverse geocoding for coordinates
+                        if (LocationHelper.TryReverseGeocode(lat, lon, out string? reversedName, msg => WriteVerbose(msg)))
+                        {
+                            markerLabel = reversedName!;
+                        }
+                        else
+                        {
+                            markerLabel = $"{lat:F6},{lon:F6}";
+                        }
+                    }
+                    else
+                    {
+                        markerLabel = tourLoc.Location;
+                    }
+                    
+                    _pipelineMarkers.Add(new MapMarker
+                    {
+                        Latitude = lat,
+                        Longitude = lon,
+                        Label = markerLabel,
+                        Color = GetMarkerColor(tourLoc.Color),
+                        Description = tourLoc.Description,
+                        Location = tourLoc.Location,
+                        Status = "Success",
+                        GeocodingSource = isCoordStr ? "Coordinates" : "Nominatim"
+                    });
+                    WriteVerbose($"Added marker: {tourLoc.Location} at {lat}, {lon}");
+                }
+                
+                
+                WriteVerbose($"Added {locationList.Count} markers to pipeline batch (total: {_pipelineMarkers.Count})");
+                return; // EndProcessingで一括処理
             }
 
             // 単一位置の処理 (Locationパラメータセット)

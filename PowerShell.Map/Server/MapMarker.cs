@@ -6,6 +6,7 @@ public class MapMarker
     public double? Longitude { get; set; }
     public string? Label { get; set; }
     public string? Color { get; set; }
+    public string? Description { get; set; }  // Optional description for marker click display
     
     // 新規追加: PassThru用プロパティ
     public string? Location { get; set; }          // 元の入力文字列

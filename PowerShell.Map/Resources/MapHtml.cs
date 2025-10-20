@@ -519,7 +519,7 @@ public static class MapHtml
             if (state.markers && state.markers.length > 0) {
                 debugLog(`Adding ${state.markers.length} markers`);
                 state.markers.forEach(marker => {
-                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color);
+                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color, marker.description);
                 });
                 
                 // Fit bounds to show all markers
@@ -537,7 +537,7 @@ public static class MapHtml
             } else if (state.marker) {
                 // Single marker
                 debugLog(`Adding single marker: ${state.marker}`);
-                addMarker(state.longitude, state.latitude, state.marker, '#dc3545');
+                addMarker(state.longitude, state.latitude, state.marker, '#dc3545', state.locationDescription);
                 flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
             } else {
                 // Just move to location
@@ -548,7 +548,7 @@ public static class MapHtml
             if (state.routeMarkers && state.routeMarkers.length > 0) {
                 debugLog(`Adding ${state.routeMarkers.length} route markers`);
                 state.routeMarkers.forEach(marker => {
-                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color);
+                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color, marker.description);
                 });
             }
 
@@ -578,28 +578,8 @@ public static class MapHtml
             const descriptionOverlay = document.getElementById('location-description');
             descriptionOverlay.classList.remove('visible'); // Hide during animation
             
-            // Handle single location description
             if (state.locationDescription) {
                 descriptionOverlay.textContent = state.locationDescription;
-                
-                // Show description after animation completes
-                const delayMs = state.animate ? (state.duration * 1000) : 0;
-                setTimeout(() => {
-                    descriptionOverlay.classList.add('visible');
-                }, delayMs);
-            }
-            // Handle route descriptions (From and To)
-            else if (state.routeFromDescription || state.routeToDescription) {
-                let descriptionText = '';
-                if (state.routeFromDescription) {
-                    descriptionText += '🚀 ' + state.routeFromDescription;
-                }
-                if (state.routeToDescription) {
-                    if (descriptionText) descriptionText += '\n';
-                    descriptionText += '🎯 ' + state.routeToDescription;
-                }
-                descriptionOverlay.textContent = descriptionText;
-                descriptionOverlay.style.whiteSpace = 'pre-line'; // Support multi-line
                 
                 // Show description after animation completes
                 const delayMs = state.animate ? (state.duration * 1000) : 0;
@@ -610,7 +590,7 @@ public static class MapHtml
             updateIndicator('Updated');
         }
 
-        function addMarker(lng, lat, label, color) {
+        function addMarker(lng, lat, label, color, description) {
             const el = document.createElement('div');
             el.className = 'marker';
             el.style.width = '20px';
@@ -628,6 +608,19 @@ public static class MapHtml
                 const popup = new maplibregl.Popup({ offset: 25 })
                     .setHTML(`<strong>${label}</strong>`);
                 marker.setPopup(popup);
+            }
+            
+            // Add click event for description
+            if (description) {
+                const markerElement = marker.getElement();
+                markerElement.style.cursor = 'pointer';
+                markerElement.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const descriptionOverlay = document.getElementById('location-description');
+                    descriptionOverlay.textContent = description;
+                    descriptionOverlay.style.whiteSpace = 'normal';
+                    descriptionOverlay.classList.add('visible');
+                });
             }
 
             currentMarkers.push(marker);

@@ -1,7 +1,8 @@
 namespace PowerShell.Map.Server;
 
 /// <summary>
-/// Represents a location in a tour with optional description
+/// Represents a location with optional metadata (description, label, color)
+/// Used across multiple cmdlets for consistent location specification
 /// </summary>
 public class TourLocation
 {
@@ -14,4 +15,14 @@ public class TourLocation
     /// Optional description to display when visiting this location
     /// </summary>
     public string? Description { get; set; }
+    
+    /// <summary>
+    /// Optional label for the marker (defaults to location name or reverse geocoded name)
+    /// </summary>
+    public string? Label { get; set; }
+    
+    /// <summary>
+    /// Optional marker color (color name or hex code)
+    /// </summary>
+    public string? Color { get; set; }
 }
