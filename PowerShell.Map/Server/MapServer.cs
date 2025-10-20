@@ -250,8 +250,8 @@ public class MapServer
             // Create route markers for From and To locations
             var routeMarkers = new[]
             {
-                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = $"?? {fromLocation ?? "Start"}", Color = "green", Description = fromDescription },
-                new MapMarker { Latitude = toLat, Longitude = toLon, Label = $"?? {toLocation ?? "Goal"}", Color = "red", Description = toDescription }
+                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = $"\U0001F680 {fromLocation ?? "Start"}", Color = "green", Description = fromDescription },
+                new MapMarker { Latitude = toLat, Longitude = toLon, Label = $"\U0001F3AF {toLocation ?? "Goal"}", Color = "red", Description = toDescription }
             };
             _currentState = new MapState
             {
