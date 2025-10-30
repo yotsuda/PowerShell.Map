@@ -313,23 +313,23 @@ public static class MapHtml
                 return;
             }
             
-            // Check if marker is within current view bounds
-            const bounds = map.getBounds();
+            // Convert marker position to screen coordinates (pixels)
+            // This works correctly in both 2D and 3D views
             const markerLng = currentDescriptionMarker.lng;
             const markerLat = currentDescriptionMarker.lat;
+            const markerPoint = map.project([markerLng, markerLat]);
+            const mapCanvas = map.getCanvas();
             
-            debugLog('Bounds check: W=' + bounds.getWest().toFixed(4) + 
-                    ' E=' + bounds.getEast().toFixed(4) + 
-                    ' S=' + bounds.getSouth().toFixed(4) + 
-                    ' N=' + bounds.getNorth().toFixed(4) + 
-                    ' Marker=[' + markerLng.toFixed(4) + ',' + markerLat.toFixed(4) + ']');
+            // Check if marker screen position is within viewport
+            const isVisible = markerPoint.x >= 0 && 
+                            markerPoint.x <= mapCanvas.width && 
+                            markerPoint.y >= 0 && 
+                            markerPoint.y <= mapCanvas.height;
             
-            const isVisible = markerLng >= bounds.getWest() && 
-                            markerLng <= bounds.getEast() && 
-                            markerLat >= bounds.getSouth() && 
-                            markerLat <= bounds.getNorth();
-            
-            debugLog('Marker visibility: ' + isVisible);
+            debugLog('Screen position check: x=' + markerPoint.x.toFixed(1) + 
+                    ' y=' + markerPoint.y.toFixed(1) + 
+                    ' canvas=' + mapCanvas.width + 'x' + mapCanvas.height + 
+                    ' visible=' + isVisible);
             
             // Hide description if marker is out of view
             if (!isVisible) {
