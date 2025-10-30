@@ -487,13 +487,17 @@ public static class MapHtml
                     clearTimeout(rightClickTimer);
                     rightClickCount = 0;
                     
-                    // Zoom out
+                    // Zoom out centered on mouse cursor position (same behavior as left double-click zoom in)
                     const currentZoom = map.getZoom();
-                    map.flyTo({
+                    const mousePosition = [e.clientX, e.clientY];
+                    const lngLat = map.unproject(mousePosition);
+                    
+                    map.easeTo({
+                        around: lngLat,
                         zoom: currentZoom - 1,
                         duration: 300
                     });
-                    debugLog('Right double-click: Zoom out to ' + (currentZoom - 1).toFixed(1));
+                    debugLog('Right double-click: Zoom out to ' + (currentZoom - 1).toFixed(1) + ' at [' + lngLat.lng.toFixed(4) + ', ' + lngLat.lat.toFixed(4) + ']');
                 }
             });
             
