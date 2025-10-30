@@ -436,16 +436,20 @@ public static class MapHtml
             // 3D toggle button handler
             document.getElementById('toggle3d').addEventListener('click', toggle3DBuildings);
         }
-
         function initDescriptionDrag() {
             const descBox = document.getElementById('location-description');
             let isDragging = false;
-            let currentX;
-            let currentY;
-            let initialX;
-            let initialY;
-            let offsetX = 0;
-            let offsetY = 0;
+            let startMouseX;
+            let startMouseY;
+            let startLeft;
+            let startBottom;
+
+            // Reset position function - call this when description is shown
+            descBox.resetPosition = function() {
+                descBox.style.transform = 'translateX(-50%)';
+                descBox.style.left = '50%';
+                descBox.style.bottom = '250px';
+            };
 
             descBox.addEventListener('mousedown', dragStart);
             document.addEventListener('mousemove', drag);
@@ -454,9 +458,25 @@ public static class MapHtml
             function dragStart(e) {
                 if (!descBox.classList.contains('visible')) return;
                 
-                initialX = e.clientX - offsetX;
-                initialY = e.clientY - offsetY;
                 isDragging = true;
+                
+                // Get current position including transform
+                const rect = descBox.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Store initial mouse position
+                startMouseX = e.clientX;
+                startMouseY = e.clientY;
+                
+                // Store initial element position (convert to absolute)
+                startLeft = rect.left;
+                startBottom = viewportHeight - rect.bottom;
+                
+                // Convert to absolute positioning
+                descBox.style.transform = 'none';
+                descBox.style.left = startLeft + 'px';
+                descBox.style.bottom = startBottom + 'px';
+                
                 descBox.classList.add('dragging');
             }
 
@@ -464,15 +484,15 @@ public static class MapHtml
                 if (!isDragging) return;
                 
                 e.preventDefault();
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-                offsetX = currentX;
-                offsetY = currentY;
-
-                // Remove transform and use absolute positioning
-                descBox.style.transform = 'none';
-                descBox.style.left = `calc(50% + ${currentX}px)`;
-                descBox.style.bottom = `${250 - currentY}px`;
+                
+                // Calculate total movement from start
+                const deltaX = e.clientX - startMouseX;
+                const deltaY = e.clientY - startMouseY;
+                
+                // Update position based on initial position + delta
+                descBox.style.left = (startLeft + deltaX) + 'px';
+                // Note: bottom increases upward, but clientY increases downward, so we negate deltaY
+                descBox.style.bottom = (startBottom - deltaY) + 'px';
             }
 
             function dragEnd() {
@@ -699,6 +719,11 @@ public static class MapHtml
             if (state.locationDescription) {
                 descriptionOverlay.textContent = state.locationDescription;
                 
+                // Reset position to center before showing
+                if (descriptionOverlay.resetPosition) {
+                    descriptionOverlay.resetPosition();
+                }
+                
                 // Track the marker coordinates for visibility checking
                 currentDescriptionMarker = { 
                     lng: state.longitude, 
@@ -753,6 +778,12 @@ public static class MapHtml
                     const descriptionOverlay = document.getElementById('location-description');
                     descriptionOverlay.textContent = description;
                     descriptionOverlay.style.whiteSpace = 'normal';
+                    
+                    // Reset position to center before showing
+                    if (descriptionOverlay.resetPosition) {
+                        descriptionOverlay.resetPosition();
+                    }
+                    
                     descriptionOverlay.classList.add('visible');
                     
                     // Track current marker for visibility check
