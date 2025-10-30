@@ -230,10 +230,11 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             WriteVerbose($"Route retrieved with {routeCoordinates.Length} coordinate points");
 
             // Update map with route
-            // Determine From label: use provided label, or location name, or reverse geocoded name
+            // Determine From label: use provided label, or add emoji to location name
             string finalFromLabel;
             if (!string.IsNullOrEmpty(fromLabel))
             {
+                // User explicitly specified label - use as-is
                 finalFromLabel = fromLabel;
             }
             else if (CoordinateValidator.IsCoordinateString(fromLocation))
@@ -241,24 +242,25 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
                 // 座標の場合、逆ジオコーディングを試みる
                 if (LocationHelper.TryReverseGeocode(fromLat, fromLon, out string? reversedName, msg => WriteVerbose(msg)))
                 {
-                    finalFromLabel = reversedName!;
-                    WriteVerbose($"From: Using reverse geocoded name: {finalFromLabel}");
+                    finalFromLabel = $"\U0001F680 {reversedName}";
+                    WriteVerbose($"From: Using reverse geocoded name with emoji: {finalFromLabel}");
                 }
                 else
                 {
-                    finalFromLabel = $"{fromLat:F6},{fromLon:F6}";
-                    WriteVerbose($"From: Reverse geocoding failed, using coordinates as label");
+                    finalFromLabel = $"\U0001F680 {fromLat:F6},{fromLon:F6}";
+                    WriteVerbose($"From: Reverse geocoding failed, using coordinates with emoji as label");
                 }
             }
             else
             {
-                finalFromLabel = fromLocation;
+                finalFromLabel = $"\U0001F680 {fromLocation}";
             }
             
-            // Determine To label: use provided label, or location name, or reverse geocoded name
+            // Determine To label: use provided label, or add emoji to location name
             string finalToLabel;
             if (!string.IsNullOrEmpty(toLabel))
             {
+                // User explicitly specified label - use as-is
                 finalToLabel = toLabel;
             }
             else if (CoordinateValidator.IsCoordinateString(toLocation))
@@ -266,18 +268,18 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
                 // 座標の場合、逆ジオコーディングを試みる
                 if (LocationHelper.TryReverseGeocode(toLat, toLon, out string? reversedName, msg => WriteVerbose(msg)))
                 {
-                    finalToLabel = reversedName!;
-                    WriteVerbose($"To: Using reverse geocoded name: {finalToLabel}");
+                    finalToLabel = $"\U0001F3AF {reversedName}";
+                    WriteVerbose($"To: Using reverse geocoded name with emoji: {finalToLabel}");
                 }
                 else
                 {
-                    finalToLabel = $"{toLat:F6},{toLon:F6}";
-                    WriteVerbose($"To: Reverse geocoding failed, using coordinates as label");
+                    finalToLabel = $"\U0001F3AF {toLat:F6},{toLon:F6}";
+                    WriteVerbose($"To: Reverse geocoding failed, using coordinates with emoji as label");
                 }
             }
             else
             {
-                finalToLabel = toLocation;
+                finalToLabel = $"\U0001F3AF {toLocation}";
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
@@ -356,7 +358,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
                         if (values.Length >= 2)
                         {
                             // GeoJSON format: [longitude, latitude]
-                            coordList.Add(new[] { values[0].GetDouble(), values[1].GetDouble() });
+                            coordList.Add([values[0].GetDouble(), values[1].GetDouble()]);
                         }
                     }
                     
