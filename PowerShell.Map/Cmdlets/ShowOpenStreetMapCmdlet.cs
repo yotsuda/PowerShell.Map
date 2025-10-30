@@ -392,7 +392,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 var currentState = server.GetCurrentState();
                 double lat = currentState.Latitude;
                 double lon = currentState.Longitude;
-                int zoom = Zoom ?? currentState.Zoom;
+                int? zoom = Zoom ?? currentState.Zoom;
                 string? marker = currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");

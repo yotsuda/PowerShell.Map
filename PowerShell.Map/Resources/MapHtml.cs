@@ -733,18 +733,25 @@ public static class MapHtml
                 debugLog(`Adding route with ${state.routeCoordinates.length} points`);
                 addRoute(state.routeCoordinates, state.routeColor || '#0066ff', state.routeWidth || 4);
                 
-                // Fit bounds to route
-                const bounds = new maplibregl.LngLatBounds();
-                state.routeCoordinates.forEach(coord => {
-                    bounds.extend(coord);
-                });
-                map.fitBounds(bounds, { 
-                    padding: 50, 
-                    animate: state.animate, 
-                    duration: state.duration * 1000,
-                    pitch: targetPitch,
-                    bearing: targetBearing
-                });
+                // If zoom is user-specified, fly to start point with specified zoom
+                // Otherwise, fit bounds to show entire route
+                if (state.zoom !== null && state.zoom !== undefined) {
+                    debugLog(`User-specified zoom: ${state.zoom}, flying to start point`);
+                    flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
+                } else {
+                    debugLog('Auto-fitting bounds to show entire route');
+                    const bounds = new maplibregl.LngLatBounds();
+                    state.routeCoordinates.forEach(coord => {
+                        bounds.extend(coord);
+                    });
+                    map.fitBounds(bounds, { 
+                        padding: 50, 
+                        animate: state.animate, 
+                        duration: state.duration * 1000,
+                        pitch: targetPitch,
+                        bearing: targetBearing
+                    });
+                }
             }
 
 

@@ -145,7 +145,7 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0, string? locationDescription = null)
+    public bool UpdateMap(double latitude, double longitude, int? zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0, string? locationDescription = null)
     {
         lock (_lock)
         {
@@ -241,12 +241,15 @@ public class MapServer
     {
         lock (_lock)
         {
-            // Calculate center point and appropriate zoom
+            // Calculate center point for route display
+            // When zoom is user-specified, use start point; otherwise use center point
             var centerLat = (fromLat + toLat) / 2;
             var centerLon = (fromLon + toLon) / 2;
             
-            // Use specified zoom or calculate appropriate zoom based on distance
-            int targetZoom = zoom ?? CalculateOptimalZoom(Math.Abs(fromLat - toLat), Math.Abs(fromLon - toLon));
+            // Use start point if zoom is user-specified, otherwise use center point
+            var displayLat = zoom.HasValue ? fromLat : centerLat;
+            var displayLon = zoom.HasValue ? fromLon : centerLon;
+            
             // Create route markers for From and To locations
             var routeMarkers = new[]
             {
@@ -255,9 +258,9 @@ public class MapServer
             };
             _currentState = new MapState
             {
-                Latitude = centerLat,
-                Longitude = centerLon,
-                Zoom = targetZoom,
+                Latitude = displayLat,
+                Longitude = displayLon,
+                Zoom = zoom,
                 RouteCoordinates = routeCoordinates,
                 RouteColor = color ?? "#0066ff",
                 RouteWidth = width,
@@ -520,7 +523,7 @@ public class MapState
 {
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public int Zoom { get; set; }
+    public int? Zoom { get; set; }
     public string? Marker { get; set; }
     public bool DebugMode { get; set; }
     public double[][]? RouteCoordinates { get; set; }  // [lon, lat] pairs
