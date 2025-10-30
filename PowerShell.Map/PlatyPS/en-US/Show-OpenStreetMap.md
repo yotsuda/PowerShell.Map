@@ -1,6 +1,6 @@
 ---
 external help file: PowerShell.Map.dll-Help.xml
-Module Name: PowerShell.Map
+Module Name: powerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
 schema: 2.0.0
 ---
@@ -12,23 +12,24 @@ Displays an interactive 2D/3D map using OpenStreetMap and MapLibre GL JS in the 
 
 ## SYNTAX
 
-### Location
+### SimpleLocation
 ```
-Show-OpenStreetMap [[-Location] <String[]>] [-Marker <String>] [-Zoom <Int32>] [-Duration <Double>] [-Enable3D]
- [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Show-OpenStreetMap [[-Location] <String[]>] [-Zoom <Int32>] [-Duration <Double>] [-Enable3D]
+ [-Bearing <Double>] [-Pitch <Double>] [-Description <String>] [-ProgressAction <ActionPreference>]
+ [<CommonParameters>]
 ```
 
-### Markers
+### StructuredLocation
 ```
-Show-OpenStreetMap -Markers <Object[]> [-Zoom <Int32>] [-Duration <Double>] [-Enable3D] [-Bearing <Double>]
- [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Show-OpenStreetMap -Locations <Object[]> [-Zoom <Int32>] [-Duration <Double>] [-Enable3D] [-Bearing <Double>]
+ [-Pitch <Double>] [-Description <String>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ### Pipeline
 ```
 Show-OpenStreetMap -Latitude <String> -Longitude <String> [-Label <String>] [-Color <String>] [-Zoom <Int32>]
- [-Duration <Double>] [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>]
- [<CommonParameters>]
+ [-Duration <Double>] [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-Description <String>]
+ [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -131,6 +132,26 @@ Show-OpenStreetMap "45.9763,7.6586" -Marker "Matterhorn" -Enable3D -Zoom 12 -Pit
 ```
 
 Displays the Matterhorn mountain in the Alps with 3D terrain visualization.
+Displays the Matterhorn mountain in the Alps with 3D terrain visualization.
+
+### Example 13: Display location with description
+```powershell
+Show-OpenStreetMap "Tokyo Tower" -Description "🗼 Tokyo Tower is a 333m communications and observation tower in Tokyo"
+```
+
+Displays Tokyo Tower with a clickable description that appears in an information box.
+
+### Example 14: Display multiple locations with descriptions
+```powershell
+$locations = @(
+    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan - Population: 14 million" }
+    @{ Location = "Osaka"; Description = "🏯 Second largest city - Known for food culture" }
+    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital - 2000+ temples and shrines" }
+)
+Show-OpenStreetMap -Locations $locations
+```
+
+Displays three cities with custom descriptions and emoji. Click any marker to see its description.
 
 ## PARAMETERS
 
@@ -141,7 +162,7 @@ When multiple locations are provided, they are displayed as markers on the map, 
 
 ```yaml
 Type: String[]
-Parameter Sets: Location
+Parameter Sets: SimpleLocation
 Aliases:
 
 Required: False
@@ -163,43 +184,6 @@ Required: False
 Position: Named
 Default value: 13
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Marker
-Specifies a label for a single marker to be displayed at the specified location.
-
-```yaml
-Type: String
-Parameter Sets: Location
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Markers
-Specifies an array of markers to display on the map. Accepts multiple formats:
-
-- **String array**: Simple location names (e.g., "Tokyo", "Osaka")
-- **Pipe-delimited strings**: "Location|Label|Color" format (e.g., "Tokyo|東京|red")
-- **Hashtable array**: Each hashtable should have Location (required), Label (optional), and Color (optional) properties
-- **MapMarker objects**: Strongly-typed MapMarker objects
-
-Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.
-
-```yaml
-Type: Object[]
-Parameter Sets: Markers
-Aliases:
-
-Required: True
-Position: Named
-Default value: None
-Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -352,6 +336,49 @@ Required: False
 Position: Named
 Default value: 0
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Description
+Specifies an optional description text to display for the location. When a marker is clicked on the map, this description will be shown in a draggable information box. The description supports emoji and multi-line text.
+
+This parameter is only available when using the SimpleLocation parameter set with a single location.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Locations
+Specifies an array of structured location objects with optional metadata. Each element should be a hashtable or PSObject with the following properties:
+- Location (required): Place name or coordinate string
+- Description (optional): Text to display when the marker is clicked
+- Label (optional): Custom label for the marker (overrides default location name)
+- Color (optional): Marker color (e.g., "red", "blue", "#ff0000")
+
+Example:
+$locations = @(
+    @{ Location = "Tokyo"; Description = "Capital of Japan"; Label = "東京"; Color = "red" }
+    @{ Location = "Osaka"; Description = "Second largest city"; Color = "blue" }
+)
+Show-OpenStreetMap -Locations $locations
+
+```yaml
+Type: Object[]
+Parameter Sets: StructuredLocation
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 

@@ -656,7 +656,26 @@ public static class MapHtml
                 .setLngLat([lng, lat])
                 .addTo(map);
 
+            // Add label as a permanent text overlay next to the marker
             if (label) {
+                const labelEl = document.createElement('div');
+                labelEl.className = 'marker-label';
+                labelEl.textContent = label;
+                labelEl.style.position = 'absolute';
+                labelEl.style.left = '25px';
+                labelEl.style.top = '-5px';
+                labelEl.style.fontSize = '12px';
+                labelEl.style.fontWeight = 'bold';
+                labelEl.style.color = '#333';
+                labelEl.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                labelEl.style.padding = '2px 6px';
+                labelEl.style.borderRadius = '3px';
+                labelEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
+                labelEl.style.whiteSpace = 'nowrap';
+                labelEl.style.pointerEvents = 'none';
+                el.appendChild(labelEl);
+                
+                // Also add as popup for hover
                 const popup = new maplibregl.Popup({ offset: 25 })
                     .setHTML(`<strong>${label}</strong>`);
                 marker.setPopup(popup);

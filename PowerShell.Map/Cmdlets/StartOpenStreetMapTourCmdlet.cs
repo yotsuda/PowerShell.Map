@@ -99,7 +99,9 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                     tourLoc = new TourLocation
                     {
                         Location = ht["Location"]?.ToString() ?? string.Empty,
-                        Description = ht["Description"]?.ToString()
+                        Description = ht["Description"]?.ToString(),
+                        Label = ht["Label"]?.ToString(),
+                        Color = ht["Color"]?.ToString()
                     };
                 }
                 // Handle PSObject
@@ -108,7 +110,9 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                     tourLoc = new TourLocation
                     {
                         Location = psObj.Properties["Location"]?.Value?.ToString() ?? string.Empty,
-                        Description = psObj.Properties["Description"]?.Value?.ToString()
+                        Description = psObj.Properties["Description"]?.Value?.ToString(),
+                        Label = psObj.Properties["Label"]?.Value?.ToString(),
+                        Color = psObj.Properties["Color"]?.Value?.ToString()
                     };
                 }
                 
@@ -157,14 +161,22 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                         Step = i + 1,
                         TotalSteps = _tourLocations.Count,
                         Location = tourLocation.Location,
+                        Label = !string.IsNullOrEmpty(tourLocation.Label) ? tourLocation.Label : tourLocation.Location,
+                        Color = GetMarkerColor(tourLocation.Color),
+                        Description = tourLocation.Description,
                         Status = "Failed",
                         GeocodingSource = "Unknown"
                     });
                     continue;
                 }
 
-                string label = tourLocation.Location;
-                if (tourLocation.Location.Contains(','))
+                // Determine label: use provided label, or location name, or reverse geocoded name
+                string label;
+                if (!string.IsNullOrEmpty(tourLocation.Label))
+                {
+                    label = tourLocation.Label;
+                }
+                else if (tourLocation.Location.Contains(','))
                 {
                     // Try reverse geocoding for coordinates
                     if (LocationHelper.TryReverseGeocode(lat, lon, out string? reversedName, 
@@ -172,8 +184,15 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                     {
                         label = reversedName!;
                     }
+                    else
+                    {
+                        label = tourLocation.Location;
+                    }
                 }
-
+                else
+                {
+                    label = tourLocation.Location;
+                }
                 // Move to location with animation (always animated in tour mode)
                 ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch, tourLocation.Description));
                 
@@ -186,6 +205,8 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                     Latitude = lat,
                     Longitude = lon,
                     Label = label,
+                    Color = GetMarkerColor(tourLocation.Color),
+                    Description = tourLocation.Description,
                     Status = "Success",
                     GeocodingSource = tourLocation.Location.Contains(',') ? "Coordinates" : "Nominatim"
                 });

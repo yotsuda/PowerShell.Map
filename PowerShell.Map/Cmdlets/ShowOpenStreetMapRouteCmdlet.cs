@@ -1,4 +1,5 @@
-﻿using System.Management.Automation;
+﻿using System.Collections;
+using System.Management.Automation;
 using System.Text.Json;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
@@ -13,16 +14,18 @@ namespace PowerShell.Map.Cmdlets;
 public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
 {
     /// <summary>
-    /// Starting location (place name or "latitude,longitude" format)
+    /// Starting location (place name, "latitude,longitude" format, or hashtable with Location and Description)
+    /// Example: "Tokyo" or @{ Location = "Tokyo"; Description = "Capital of Japan" }
     /// </summary>
     [Parameter(Position = 0, Mandatory = true)]
-    public string? From { get; set; }
+    public object? From { get; set; }
 
     /// <summary>
-    /// Destination location (place name or "latitude,longitude" format)
+    /// Destination location (place name, "latitude,longitude" format, or hashtable with Location and Description)
+    /// Example: "Osaka" or @{ Location = "Osaka"; Description = "Second largest city" }
     /// </summary>
     [Parameter(Position = 1, Mandatory = true)]
-    public string? To { get; set; }
+    public object? To { get; set; }
 
     /// <summary>
     /// Route line color (color name or hex code, default: #0066ff)
@@ -78,18 +81,6 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     [Parameter]
     [ValidateRange(0, 85)]
     public double Pitch { get; set; } = 0;
-
-    /// <summary>
-    /// Optional description to display for the starting location
-    /// </summary>
-    [Parameter]
-    public string? FromDescription { get; set; }
-
-    /// <summary>
-    /// Optional description to display for the destination location
-    /// </summary>
-    [Parameter]
-    public string? ToDescription { get; set; }
     // /// <summary>
     // /// Enable debug mode to show detailed logging
     // /// </summary>
@@ -102,6 +93,57 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
         {
             var server = MapServer.Instance;
 
+            // Parse From parameter (string or hashtable)
+            string fromLocation;
+            string? fromDescription = null;
+            string? fromLabel = null;
+            string? fromColor = null;
+            
+            if (From is System.Collections.Hashtable fromHt)
+            {
+                fromLocation = fromHt["Location"]?.ToString() ?? string.Empty;
+                fromDescription = fromHt["Description"]?.ToString();
+                fromLabel = fromHt["Label"]?.ToString();
+                fromColor = fromHt["Color"]?.ToString();
+            }
+            else if (From is PSObject fromPsObj)
+            {
+                fromLocation = fromPsObj.Properties["Location"]?.Value?.ToString() ?? string.Empty;
+                fromDescription = fromPsObj.Properties["Description"]?.Value?.ToString();
+                fromLabel = fromPsObj.Properties["Label"]?.Value?.ToString();
+                fromColor = fromPsObj.Properties["Color"]?.Value?.ToString();
+            }
+            else
+            {
+                fromLocation = From?.ToString() ?? string.Empty;
+            }
+
+            // Parse To parameter (string or hashtable)
+            string toLocation;
+            string? toDescription = null;
+            string? toLabel = null;
+            string? toColor = null;
+            
+            if (To is System.Collections.Hashtable toHt)
+            {
+                toLocation = toHt["Location"]?.ToString() ?? string.Empty;
+                toDescription = toHt["Description"]?.ToString();
+                toLabel = toHt["Label"]?.ToString();
+                toColor = toHt["Color"]?.ToString();
+            }
+            else if (To is PSObject toPsObj)
+            {
+                toLocation = toPsObj.Properties["Location"]?.Value?.ToString() ?? string.Empty;
+                toDescription = toPsObj.Properties["Description"]?.Value?.ToString();
+                toLabel = toPsObj.Properties["Label"]?.Value?.ToString();
+                toColor = toPsObj.Properties["Color"]?.Value?.ToString();
+            }
+            else
+            {
+                toLocation = To?.ToString() ?? string.Empty;
+            }
+
+
             // Automatically enable 3D mode if Bearing or Pitch is specified
             if ((Bearing != 0 || Pitch != 0) && !Enable3D)
             {
@@ -110,57 +152,64 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
 
             // Parse From location
-            if (!LocationHelper.TryParseLocation(From!, out double fromLat, out double fromLon,
+            if (!LocationHelper.TryParseLocation(fromLocation, out double fromLat, out double fromLon,
                 msg => WriteVerbose(msg), msg => WriteWarning(msg)))
             {
                 var failedFromMarker = new MapMarker
                 {
-                    Location = From,
-                    Label = "From",
+                    Location = fromLocation,
+                    Label = !string.IsNullOrEmpty(fromLabel) ? fromLabel : fromLocation,
+                    Description = fromDescription,
+                    Color = GetMarkerColor(fromColor),
                     Status = "Failed",
                     GeocodingSource = "Unknown"
                 };
                 WriteObject(failedFromMarker);
                 
                 WriteError(new ErrorRecord(
-                    new ArgumentException($"Invalid From location: {From}. Use 'latitude,longitude' format or a place name."),
+                    new ArgumentException($"Invalid From location: {fromLocation}. Use 'latitude,longitude' format or a place name."),
                     "InvalidFromLocation",
                     ErrorCategory.InvalidArgument,
-                    From));
+                    fromLocation));
                 return;
             }
 
             // Parse To location
-            if (!LocationHelper.TryParseLocation(To!, out double toLat, out double toLon,
+            if (!LocationHelper.TryParseLocation(toLocation, out double toLat, out double toLon,
                 msg => WriteVerbose(msg), msg => WriteWarning(msg)))
             {
                 // Output successful From marker
+                // Output successful From marker (To parsing failed, so we can't do full label logic yet)
                 var successFromMarker = new MapMarker
                 {
                     Latitude = fromLat,
                     Longitude = fromLon,
-                    Label = "From",
-                    Location = From,
+                    Label = !string.IsNullOrEmpty(fromLabel) ? fromLabel : fromLocation,
+                    Description = fromDescription,
+                    Color = GetMarkerColor(fromColor),
+                    Location = fromLocation,
                     Status = "Success",
-                    GeocodingSource = CoordinateValidator.IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
+                    GeocodingSource = CoordinateValidator.IsCoordinateString(fromLocation) ? "Coordinates" : "Nominatim"
                 };
                 WriteObject(successFromMarker);
                 
                 // Output failed To marker
                 var failedToMarker = new MapMarker
                 {
-                    Location = To,
-                    Label = "To",
+                    Location = toLocation,
+                    Label = !string.IsNullOrEmpty(toLabel) ? toLabel : toLocation,
+                    Description = toDescription,
+                    Color = GetMarkerColor(toColor),
                     Status = "Failed",
                     GeocodingSource = "Unknown"
                 };
                 WriteObject(failedToMarker);
                 
                 WriteError(new ErrorRecord(
-                    new ArgumentException($"Invalid To location: {To}. Use 'latitude,longitude' format or a place name."),
+                    new ArgumentException($"Invalid To location: {toLocation}. Use 'latitude,longitude' format or a place name."),
                     "InvalidToLocation",
                     ErrorCategory.InvalidArgument,
-                    To));
+                    toLocation));
                 return;
             }
 
@@ -181,49 +230,59 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             WriteVerbose($"Route retrieved with {routeCoordinates.Length} coordinate points");
 
             // Update map with route
-            // Use reverse geocoded names for coordinates when possible, preserve location names otherwise
-            string fromLabel;
-            if (CoordinateValidator.IsCoordinateString(From!))
+            // Determine From label: use provided label, or location name, or reverse geocoded name
+            string finalFromLabel;
+            if (!string.IsNullOrEmpty(fromLabel))
+            {
+                finalFromLabel = fromLabel;
+            }
+            else if (CoordinateValidator.IsCoordinateString(fromLocation))
             {
                 // 座標の場合、逆ジオコーディングを試みる
                 if (LocationHelper.TryReverseGeocode(fromLat, fromLon, out string? reversedName, msg => WriteVerbose(msg)))
                 {
-                    fromLabel = reversedName!;
-                    WriteVerbose($"From: Using reverse geocoded name: {fromLabel}");
+                    finalFromLabel = reversedName!;
+                    WriteVerbose($"From: Using reverse geocoded name: {finalFromLabel}");
                 }
                 else
                 {
-                    fromLabel = $"{fromLat:F6},{fromLon:F6}";
+                    finalFromLabel = $"{fromLat:F6},{fromLon:F6}";
                     WriteVerbose($"From: Reverse geocoding failed, using coordinates as label");
                 }
             }
             else
             {
-                fromLabel = From!;
+                finalFromLabel = fromLocation;
             }
             
-            string toLabel;
-            if (CoordinateValidator.IsCoordinateString(To!))
+            // Determine To label: use provided label, or location name, or reverse geocoded name
+            string finalToLabel;
+            if (!string.IsNullOrEmpty(toLabel))
+            {
+                finalToLabel = toLabel;
+            }
+            else if (CoordinateValidator.IsCoordinateString(toLocation))
             {
                 // 座標の場合、逆ジオコーディングを試みる
                 if (LocationHelper.TryReverseGeocode(toLat, toLon, out string? reversedName, msg => WriteVerbose(msg)))
                 {
-                    toLabel = reversedName!;
-                    WriteVerbose($"To: Using reverse geocoded name: {toLabel}");
+                    finalToLabel = reversedName!;
+                    WriteVerbose($"To: Using reverse geocoded name: {finalToLabel}");
                 }
                 else
                 {
-                    toLabel = $"{toLat:F6},{toLon:F6}";
+                    finalToLabel = $"{toLat:F6},{toLon:F6}";
                     WriteVerbose($"To: Reverse geocoding failed, using coordinates as label");
                 }
             }
             else
             {
-                toLabel = To!;
+                finalToLabel = toLocation;
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, Zoom, false, fromLabel, toLabel, Duration, Enable3D, Bearing, Pitch, FromDescription, ToDescription));
+                routeCoordinates, Color, Width, Zoom, false, finalFromLabel, finalToLabel, Duration, Enable3D, Bearing, Pitch, fromDescription, toDescription));
+
             WriteVerbose("Map updated with route");
             
             // Output From marker
@@ -231,11 +290,12 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             {
                 Latitude = fromLat,
                 Longitude = fromLon,
-                Label = fromLabel,
-                Color = GetMarkerColor(Color),
-                Location = From,
+                Label = finalFromLabel,
+                Description = fromDescription,
+                Color = GetMarkerColor(fromColor),
+                Location = fromLocation,
                 Status = "Success",
-                GeocodingSource = CoordinateValidator.IsCoordinateString(From!) ? "Coordinates" : "Nominatim"
+                GeocodingSource = CoordinateValidator.IsCoordinateString(fromLocation) ? "Coordinates" : "Nominatim"
             };
             WriteObject(fromMarker);
             
@@ -244,12 +304,14 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             {
                 Latitude = toLat,
                 Longitude = toLon,
-                Label = toLabel,
-                Color = GetMarkerColor(Color),
-                Location = To,
+                Label = finalToLabel,
+                Description = toDescription,
+                Color = GetMarkerColor(toColor),
+                Location = toLocation,
                 Status = "Success",
-                GeocodingSource = CoordinateValidator.IsCoordinateString(To!) ? "Coordinates" : "Nominatim"
+                GeocodingSource = CoordinateValidator.IsCoordinateString(toLocation) ? "Coordinates" : "Nominatim"
             };
+
             WriteObject(toMarker);
         }
         catch (Exception ex)

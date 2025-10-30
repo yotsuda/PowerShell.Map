@@ -18,9 +18,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     [Parameter(Position = 0, ParameterSetName = SimpleLocationSet)]
     public string[]? Location { get; set; }
 
-    // 単一マーカーのラベル (Location が1つの場合のみ有効)
-    [Parameter(ParameterSetName = SimpleLocationSet)]
-    public string? Marker { get; set; }
 
     // 構造化されたロケーション (Hashtable または PSObject の配列)
     // 各要素: @{ Location = "地名"; Description = "説明"; Label = "ラベル"; Color = "色" }
@@ -107,7 +104,8 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                         Latitude = lat,
                         Longitude = lon,
                         Label = Label,
-                        Color = GetMarkerColor(Color)
+                        Color = GetMarkerColor(Color),
+                        Description = Description
                     });
                     WriteVerbose($"Added marker from pipeline: {Label ?? $"{lat},{lon}"}");
                 }
@@ -170,6 +168,9 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                         _pipelineMarkers.Add(new MapMarker
                         {
                             Location = tourLoc.Location,
+                            Description = tourLoc.Description,
+                            Label = tourLoc.Label,
+                            Color = tourLoc.Color,
                             Status = "Failed",
                             GeocodingSource = "Unknown"
                         });
@@ -224,10 +225,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 // 複数の場所が指定された場合 → マーカーとして表示
                 if (Location.Length > 1)
                 {
-                    if (!string.IsNullOrEmpty(Marker))
-                    {
-                        WriteWarning("-Marker parameter is ignored when multiple locations are specified");
-                    }
 
                     var markerList = new List<MapMarker>();
                     foreach (var loc in Location)
@@ -336,7 +333,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     var failedMarker = new MapMarker
                     {
                         Location = Location[0],
-                        Label = Marker,
+                        Label = Location[0],
                         Status = "Failed",
                         GeocodingSource = "Unknown"
                     };
@@ -352,13 +349,9 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
 
                 int zoom = Zoom ?? (Enable3D ? 17 : 13);
                 
-                // ラベルを決定: Markerパラメータがあればそれを使用、なければ座標の場合は逆ジオコーディング→座標、ロケーション名の場合はロケーション名
+                // ラベルを決定: 座標の場合は逆ジオコーディング→座標、ロケーション名の場合はロケーション名
                 string label;
-                if (Marker != null)
-                {
-                    label = Marker;
-                }
-                else if (isSingleCoord)
+                if (isSingleCoord)
                 {
                     // 座標の場合、逆ジオコーディングを試みる
                     if (LocationHelper.TryReverseGeocode(lat, lon, out string? reversedName, msg => WriteVerbose(msg)))
@@ -376,7 +369,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 {
                     label = Location[0];
                 }
-
                 ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
@@ -401,7 +393,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 double lat = currentState.Latitude;
                 double lon = currentState.Longitude;
                 int zoom = Zoom ?? currentState.Zoom;
-                string? marker = Marker ?? currentState.Marker;
+                string? marker = currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");
                 ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));

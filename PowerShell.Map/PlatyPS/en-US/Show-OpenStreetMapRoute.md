@@ -1,6 +1,6 @@
 ---
 external help file: PowerShell.Map.dll-Help.xml
-Module Name: PowerShell.Map
+Module Name: powerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
 schema: 2.0.0
 ---
@@ -13,8 +13,9 @@ Displays a route between two locations on an interactive map.
 ## SYNTAX
 
 ```
-Show-OpenStreetMapRoute [-From] <String> [-To] <String> [-Color <String>] [-Width <Int32>] [-Zoom <Int32>]
- [-Duration <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Show-OpenStreetMapRoute [-From] <Object> [-To] <Object> [-Color <String>] [-Width <Int32>] [-Zoom <Int32>]
+ [-Duration <Double>] [-Profile <String>] [-Enable3D] [-Bearing <Double>] [-Pitch <Double>]
+ [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -58,13 +59,40 @@ $routes | ForEach-Object {
 
 Displays multiple routes in sequence with a 2-second delay between each.
 
+### Example 5: Route with location descriptions
+```powershell
+Show-OpenStreetMapRoute `
+    -From @{ Location = "Tokyo"; Description = "?? Starting point: Tokyo Station area" } `
+    -To @{ Location = "Osaka"; Description = "?? Destination: Osaka Castle area" }
+```
+
+Displays a route with clickable descriptions at the start and end points.
+
+### Example 6: Route with 3D terrain visualization
+```powershell
+Show-OpenStreetMapRoute `
+    -From "Tokyo" `
+    -To "Mount Fuji" `
+    -Enable3D -Pitch 70 -Profile walking
+```
+
+Displays a walking route to Mount Fuji with 3D terrain visualization for dramatic mountain views.
+
 ## PARAMETERS
 
 ### -From
-Specifies the starting location. Can be a place name (e.g., "Tokyo") or a coordinate string in "latitude,longitude" format (e.g., "35.6586,139.7454").
+Specifies the starting location for the route. This parameter accepts two formats:
+
+1. Simple string: Place name (e.g., "Tokyo") or coordinate string (e.g., "35.6586,139.7454")
+2. Hashtable with optional metadata:
+   - Location (required): Place name or coordinates
+   - Description (optional): Text to display when the marker is clicked
+
+Example with description:
+Show-OpenStreetMapRoute -From @{ Location = "Tokyo"; Description = "🚀 Starting point" } -To "Osaka"
 
 ```yaml
-Type: String
+Type: Object
 Parameter Sets: (All)
 Aliases:
 
@@ -76,10 +104,18 @@ Accept wildcard characters: False
 ```
 
 ### -To
-Specifies the destination location. Can be a place name (e.g., "Osaka") or a coordinate string in "latitude,longitude" format (e.g., "34.6937,135.5023").
+Specifies the destination location for the route. This parameter accepts two formats:
+
+1. Simple string: Place name (e.g., "Osaka") or coordinate string (e.g., "34.6937,135.5023")
+2. Hashtable with optional metadata:
+   - Location (required): Place name or coordinates
+   - Description (optional): Text to display when the marker is clicked
+
+Example with description:
+Show-OpenStreetMapRoute -From "Tokyo" -To @{ Location = "Osaka"; Description = "🎯 Destination" }
 
 ```yaml
-Type: String
+Type: Object
 Parameter Sets: (All)
 Aliases:
 
@@ -161,6 +197,80 @@ Aliases:
 Required: False
 Position: Named
 Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bearing
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Enable3D
+Enables 3D visualization of buildings and terrain along the route. When enabled:
+- Buildings are rendered as 3D extruded shapes (at zoom level 14 and above)
+- Terrain elevation data is displayed with appropriate exaggeration for visibility
+- Default pitch angle is set to 60 degrees for optimal 3D viewing
+- The route line is rendered with elevation awareness
+
+The 3D view can be toggled on/off using the browser interface, and the camera view can be reset using the "Reset View" button.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Pitch
+Specifies the camera pitch (tilt angle) in degrees (0-85). The pitch controls how much the camera is tilted:
+- 0 degrees = Top-down view (default for 2D maps)
+- 60 degrees = Default for 3D view (automatically set when -Enable3D is used without explicit -Pitch)
+- 85 degrees = Almost horizontal view
+
+Higher pitch values provide a more dramatic 3D perspective of the route, especially in mountainous terrain. This parameter is most useful when -Enable3D is enabled.
+
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Profile
+Specifies the routing profile to use for route calculation. Valid values are:
+- "driving" (default): Car routing with road speed limits
+- "walking": Pedestrian routing with footpaths
+- "cycling": Bicycle routing with bike lanes
+
+Different profiles may produce different routes based on allowed roads and paths.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: driving
 Accept pipeline input: False
 Accept wildcard characters: False
 ```

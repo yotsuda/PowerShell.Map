@@ -1,4 +1,4 @@
----
+﻿---
 external help file: PowerShell.Map.dll-Help.xml
 Module Name: PowerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
@@ -12,9 +12,16 @@ Creates an animated tour that visits multiple locations sequentially on an inter
 
 ## SYNTAX
 
+### Simple
 ```
 Start-OpenStreetMapTour [-Location] <String[]> [-Zoom <Int32>] [-PauseTime <Double>] [-Duration <Double>]
- [-ProgressAction <ActionPreference>] [<CommonParameters>]
+ [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+```
+
+### WithDescription
+```
+Start-OpenStreetMapTour -Locations <Object[]> [-Zoom <Int32>] [-PauseTime <Double>] [-Duration <Double>]
+ [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -58,6 +65,31 @@ Creates a fast-paced tour through 8 Japanese cities with quick transitions.
 
 Pipes location names to create a tour of major US cities.
 
+### Example 6: Tour with detailed descriptions
+```powershell
+$tourStops = @(
+    @{ Location = "Tokyo"; Description = "🗼 Tokyo - Capital of Japan with 14 million people. Home to Tokyo Tower and Shibuya Crossing." }
+    @{ Location = "Mount Fuji"; Description = "🗻 Mount Fuji - Japan's tallest mountain at 3,776m. Sacred symbol of Japan." }
+    @{ Location = "Kyoto"; Description = "⛩️ Kyoto - Ancient capital with over 2,000 temples, shrines, and traditional gardens." }
+    @{ Location = "Osaka"; Description = "🏯 Osaka - Japan's kitchen. Famous for street food and Osaka Castle." }
+)
+Start-OpenStreetMapTour -Locations $tourStops -Duration 2 -PauseTime 3
+```
+
+Creates an informative tour with detailed descriptions displayed at each stop.
+
+### Example 7: 3D mountain tour
+```powershell
+$mountains = @(
+    @{ Location = "Mount Fuji"; Description = "🗻 Mount Fuji - 3,776m" }
+    @{ Location = "45.9763,7.6586"; Description = "🏔️ Matterhorn - 4,478m" }
+    @{ Location = "27.9881,86.9250"; Description = "⛰️ Mount Everest - 8,849m" }
+)
+Start-OpenStreetMapTour -Locations $mountains -Enable3D -Pitch 70 -Zoom 12 -Duration 3 -PauseTime 4
+```
+
+Creates a dramatic 3D tour of famous mountains with elevation visualization.
+
 ## PARAMETERS
 
 ### -Location
@@ -65,7 +97,7 @@ Specifies an array of locations to visit in the tour. Each location can be a pla
 
 ```yaml
 Type: String[]
-Parameter Sets: (All)
+Parameter Sets: Simple
 Aliases:
 
 Required: True
@@ -131,6 +163,92 @@ Aliases: proga
 Required: False
 Position: Named
 Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bearing
+Specifies the camera bearing (rotation) in degrees (0-360) for all locations in the tour. The bearing represents the compass direction the camera is pointing:
+- 0 degrees = North (default)
+- 90 degrees = East
+- 180 degrees = South
+- 270 degrees = West
+
+This parameter applies to all tour stops. Combining this with -Pitch creates a consistent viewing angle throughout the tour.
+
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Enable3D
+Enables 3D visualization of buildings and terrain for all locations in the tour. When enabled:
+- Buildings are rendered as 3D extruded shapes (at zoom level 14 and above)
+- Terrain elevation data is displayed with appropriate exaggeration for visibility
+- Default pitch angle is set to 60 degrees for optimal 3D viewing
+- All tour stops maintain the same 3D perspective
+
+The 3D view can be toggled on/off using the browser interface during the tour.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Locations
+Specifies an array of structured location objects with optional descriptions. Each element should be a hashtable or PSObject with the following properties:
+- Location (required): Place name or coordinate string
+- Description (optional): Text to display when visiting this location
+
+Example:
+$locations = @(
+    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan - Population: 14 million" }
+    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital - 2000+ temples" }
+)
+Start-OpenStreetMapTour -Locations $locations
+
+```yaml
+Type: Object[]
+Parameter Sets: WithDescription
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Pitch
+Specifies the camera pitch (tilt angle) in degrees (0-85) for all locations in the tour. The pitch controls how much the camera is tilted:
+- 0 degrees = Top-down view (default for 2D maps)
+- 60 degrees = Default for 3D view (automatically set when -Enable3D is used without explicit -Pitch)
+- 85 degrees = Almost horizontal view
+
+This parameter applies to all tour stops, creating a consistent viewing angle. Higher pitch values provide a more dramatic 3D perspective.
+
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 0
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
