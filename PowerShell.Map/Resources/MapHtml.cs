@@ -300,40 +300,74 @@ public static class MapHtml
         }
 
         function checkMarkerVisibility() {
-            debugLog('checkMarkerVisibility called');
-            
             if (!map || !currentDescriptionMarker) {
-                debugLog('No map or marker: ' + JSON.stringify({ map: !!map, marker: currentDescriptionMarker }));
                 return;
             }
             
             const descriptionOverlay = document.getElementById('location-description');
             if (!descriptionOverlay.classList.contains('visible')) {
-                debugLog('Overlay not visible');
                 return;
             }
             
-            // Convert marker position to screen coordinates (pixels)
-            // This works correctly in both 2D and 3D views
-            const markerLng = currentDescriptionMarker.lng;
-            const markerLat = currentDescriptionMarker.lat;
-            const markerPoint = map.project([markerLng, markerLat]);
-            const mapCanvas = map.getCanvas();
+            // Check if currentDescriptionMarker is a Marker object or coordinates
+            let isVisible;
             
-            // Check if marker screen position is within viewport
-            const isVisible = markerPoint.x >= 0 && 
-                            markerPoint.x <= mapCanvas.width && 
-                            markerPoint.y >= 0 && 
-                            markerPoint.y <= mapCanvas.height;
+            if (currentDescriptionMarker.getElement) {
+                // It's a Marker object - check if visible in viewport
+                const markerEl = currentDescriptionMarker.getElement();
+                const rect = markerEl.getBoundingClientRect();
+                
+                // Check against actual viewport (no margin)
+                isVisible = rect.right >= 0 && 
+                           rect.left <= window.innerWidth && 
+                           rect.bottom >= 0 && 
+                           rect.top <= window.innerHeight;
+                
+                console.log('Marker viewport visibility: visible=' + isVisible +
+                           ' left=' + rect.left.toFixed(1) + 
+                           ' right=' + rect.right.toFixed(1) + '/' + window.innerWidth +
+                           ' top=' + rect.top.toFixed(1) + 
+                           ' bottom=' + rect.bottom.toFixed(1) + '/' + window.innerHeight);
+            } else {
+                // It's a coordinate object - find the actual marker
+                const lng = currentDescriptionMarker.lng;
+                const lat = currentDescriptionMarker.lat;
+                
+                // Find marker with matching coordinates
+                const marker = currentMarkers.find(m => {
+                    const lngLat = m.getLngLat();
+                    return Math.abs(lngLat.lng - lng) < 0.0001 && Math.abs(lngLat.lat - lat) < 0.0001;
+                });
+                
+                if (marker && marker.getElement) {
+                    // Found the marker - check its DOM position
+                    currentDescriptionMarker = marker; // Update to use marker object
+                    const markerEl = marker.getElement();
+                    const rect = markerEl.getBoundingClientRect();
+                    
+                    isVisible = rect.right >= 0 && 
+                               rect.left <= window.innerWidth && 
+                               rect.bottom >= 0 && 
+                               rect.top <= window.innerHeight;
+                    
+                    console.log('Marker (found) viewport visibility: visible=' + isVisible +
+                               ' left=' + rect.left.toFixed(1) + 
+                               ' right=' + rect.right.toFixed(1) + '/' + window.innerWidth);
+                } else {
+                    // Fallback to map.project()
+                    const markerPoint = map.project([lng, lat]);
+                    const mapCanvas = map.getCanvas();
+                    
+                    isVisible = markerPoint.x >= 0 && markerPoint.x <= mapCanvas.width && 
+                               markerPoint.y >= 0 && markerPoint.y <= mapCanvas.height;
+                    
+                    console.log('Marker coord visibility: visible=' + isVisible +
+                               ' x=' + markerPoint.x.toFixed(1) + '/' + mapCanvas.width);
+                }
+            }
             
-            debugLog('Screen position check: x=' + markerPoint.x.toFixed(1) + 
-                    ' y=' + markerPoint.y.toFixed(1) + 
-                    ' canvas=' + mapCanvas.width + 'x' + mapCanvas.height + 
-                    ' visible=' + isVisible);
-            
-            // Hide description if marker is out of view
             if (!isVisible) {
-                debugLog('HIDING DESCRIPTION - marker out of view');
+                console.log('HIDING description - marker out of viewport');
                 descriptionOverlay.classList.remove('visible');
                 currentDescriptionMarker = null;
             }
@@ -426,6 +460,8 @@ public static class MapHtml
             
             // Check marker visibility in real-time during map movement
             map.on('move', checkMarkerVisibility);
+            map.on('moveend', checkMarkerVisibility);
+            map.on('drag', checkMarkerVisibility);
             
             // Close description when clicking on map (not on marker)
             map.on('click', () => {
@@ -649,8 +685,11 @@ public static class MapHtml
             }
 
             // Calculate camera angles
+            // Calculate camera angles
             const targetPitch = state.pitch !== undefined ? state.pitch : (state.enable3D ? 60 : 0);
             const targetBearing = state.bearing !== undefined ? state.bearing : 0;
+
+            let singleMarker = null; // Track single marker for description
 
             // Add markers
             if (state.markers && state.markers.length > 0) {
@@ -674,7 +713,7 @@ public static class MapHtml
             } else if (state.marker) {
                 // Single marker
                 debugLog(`Adding single marker: ${state.marker}`);
-                addMarker(state.longitude, state.latitude, state.marker, '#dc3545', state.locationDescription);
+                singleMarker = addMarker(state.longitude, state.latitude, state.marker, '#dc3545', state.locationDescription);
                 flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
             } else {
                 // Just move to location
@@ -724,11 +763,29 @@ public static class MapHtml
                     descriptionOverlay.resetPosition();
                 }
                 
-                // Track the marker coordinates for visibility checking
-                currentDescriptionMarker = { 
-                    lng: state.longitude, 
-                    lat: state.latitude 
-                };
+                // Find the marker object for this location
+                let marker = null;
+                if (singleMarker !== null) {
+                    marker = singleMarker;
+                    console.log('Using singleMarker for description tracking');
+                } else {
+                    // Find marker with matching coordinates from currentMarkers
+                    marker = currentMarkers.find(m => {
+                        const lngLat = m.getLngLat();
+                        return Math.abs(lngLat.lng - state.longitude) < 0.0001 && 
+                               Math.abs(lngLat.lat - state.latitude) < 0.0001;
+                    });
+                    if (marker) {
+                        console.log('Found marker from currentMarkers for description tracking');
+                    } else {
+                        console.log('WARNING: No marker found - creating one');
+                        // Create a marker for tracking (will be visible but that's ok for now)
+                        marker = addMarker(state.longitude, state.latitude, '', '#dc3545', null);
+                    }
+                }
+                
+                // Track the marker object for visibility checking
+                currentDescriptionMarker = marker;
                 
                 // Show description after animation completes
                 const delayMs = state.animate ? (state.duration * 1000) : 0;
@@ -786,13 +843,14 @@ public static class MapHtml
                     
                     descriptionOverlay.classList.add('visible');
                     
-                    // Track current marker for visibility check
-                    currentDescriptionMarker = { lng: lng, lat: lat };
-                    debugLog('Marker clicked, set currentDescriptionMarker: [' + lng.toFixed(4) + ',' + lat.toFixed(4) + ']');
+                    // Track current marker object for visibility check
+                    currentDescriptionMarker = marker;
+                    debugLog('Marker clicked, set currentDescriptionMarker');
                 });
             }
 
             currentMarkers.push(marker);
+            return marker; // Return marker object for tracking
         }
 
         function addRoute(coordinates, color, width) {

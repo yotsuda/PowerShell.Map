@@ -29,66 +29,46 @@ The Start-OpenStreetMapTour cmdlet creates an animated tour that smoothly transi
 
 ## EXAMPLES
 
-### Example 1: Simple tour of Japanese cities
+### Example 1: Basic tour
 ```powershell
+# Simple location names
 Start-OpenStreetMapTour Tokyo, Osaka, Kyoto
-```
 
-Creates an animated tour visiting Tokyo, Osaka, and Kyoto with default settings (1.5s animation, 2s pause at each location).
-
-### Example 2: Tour with custom timing
-```powershell
-Start-OpenStreetMapTour Paris, London, Berlin -Duration 3 -PauseTime 2.5
-```
-
-Creates a tour with slower animations (3 seconds) and longer pauses (2.5 seconds) at each location.
-
-### Example 3: Tour of coordinates
-```powershell
+# By coordinates
 Start-OpenStreetMapTour -Location "35.6762,139.6503", "34.6937,135.5023", "35.0116,135.7681"
+
+# With timing control
+Start-OpenStreetMapTour Paris, London, Berlin -Duration 3 -PauseTime 2.5 -Zoom 12
+
+# From pipeline or CSV
+"New York", "Chicago", "Los Angeles" | Start-OpenStreetMapTour
+Import-Csv tour.csv | ForEach-Object { $_.Location } | Start-OpenStreetMapTour
 ```
 
-Tours through specific coordinates (Tokyo Tower, Osaka, Kyoto) using coordinate strings.
+Animated tour with smooth transitions. Duration controls animation speed, PauseTime controls pause at each location.
 
-### Example 4: Fast-paced tour with many locations
-```powershell
-$cities = "Tokyo", "Yokohama", "Nagoya", "Kyoto", "Osaka", "Kobe", "Hiroshima", "Fukuoka"
-Start-OpenStreetMapTour -Location $cities -Duration 1 -PauseTime 1.5 -Zoom 12
-```
-
-Creates a fast-paced tour through 8 Japanese cities with quick transitions.
-
-### Example 5: Tour from pipeline
-```powershell
-"New York", "Chicago", "Los Angeles", "Miami" | Start-OpenStreetMapTour -Duration 2 -PauseTime 2.5
-```
-
-Pipes location names to create a tour of major US cities.
-
-### Example 6: Tour with detailed descriptions
+### Example 2: Tour with descriptions
 ```powershell
 $tourStops = @(
-    @{ Location = "Tokyo"; Description = "🗼 Tokyo - Capital of Japan with 14 million people. Home to Tokyo Tower and Shibuya Crossing." }
-    @{ Location = "Mount Fuji"; Description = "🗻 Mount Fuji - Japan's tallest mountain at 3,776m. Sacred symbol of Japan." }
-    @{ Location = "Kyoto"; Description = "⛩️ Kyoto - Ancient capital with over 2,000 temples, shrines, and traditional gardens." }
-    @{ Location = "Osaka"; Description = "🏯 Osaka - Japan's kitchen. Famous for street food and Osaka Castle." }
+    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan with 14 million people" }
+    @{ Location = "Mount Fuji"; Description = "🗻 Japan's tallest mountain at 3,776m" }
+    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital with over 2,000 temples" }
 )
 Start-OpenStreetMapTour -Locations $tourStops -Duration 2 -PauseTime 3
 ```
 
-Creates an informative tour with detailed descriptions displayed at each stop.
+Locations parameter accepts hashtables with Description property.
 
-### Example 7: 3D mountain tour
+### Example 3: 3D mountain tour
 ```powershell
 $mountains = @(
-    @{ Location = "Mount Fuji"; Description = "🗻 Mount Fuji - 3,776m" }
-    @{ Location = "45.9763,7.6586"; Description = "🏔️ Matterhorn - 4,478m" }
-    @{ Location = "27.9881,86.9250"; Description = "⛰️ Mount Everest - 8,849m" }
+    @{ Location = "Mount Fuji"; Description = "🗻 3,776m" }
+    @{ Location = "45.9763,7.6586"; Description = "🏔️ Matterhorn 4,478m" }
 )
-Start-OpenStreetMapTour -Locations $mountains -Enable3D -Pitch 70 -Zoom 12 -Duration 3 -PauseTime 4
+Start-OpenStreetMapTour -Locations $mountains -Enable3D -Pitch 70 -Zoom 12
 ```
 
-Creates a dramatic 3D tour of famous mountains with elevation visualization.
+3D terrain visualization with elevated camera angle.
 
 ## PARAMETERS
 

@@ -23,60 +23,35 @@ The Show-OpenStreetMapRoute cmdlet displays a calculated route between two locat
 
 ## EXAMPLES
 
-### Example 1: Display route between two cities
+### Example 1: Basic route calculation
 ```powershell
+# By place names
 Show-OpenStreetMapRoute -From Tokyo -To Osaka
-```
 
-Displays a route from Tokyo to Osaka using the default blue color.
-
-### Example 2: Display route with custom color and width
-```powershell
-Show-OpenStreetMapRoute -From Tokyo -To Osaka -Color "#ff0000" -Width 6
-```
-
-Displays a route with red color and thicker line (6 pixels).
-
-### Example 3: Display route using coordinates
-```powershell
+# By coordinates
 Show-OpenStreetMapRoute -From "35.6586,139.7454" -To "34.6937,135.5023"
+
+# With routing profile and styling
+Show-OpenStreetMapRoute -From Tokyo -To Osaka -Profile walking -Color "#ff0000" -Width 6
 ```
 
-Displays a route using coordinate strings (Tokyo Tower to Osaka).
+Calculates route using place names (geocoded) or coordinates. Profile: driving (default), walking, cycling.
 
-### Example 4: Display multiple routes
-```powershell
-$routes = @(
-    @{From="Tokyo"; To="Nagoya"}
-    @{From="Nagoya"; To="Osaka"}
-    @{From="Osaka"; To="Hiroshima"}
-)
-$routes | ForEach-Object {
-    Show-OpenStreetMapRoute -From $_.From -To $_.To
-    Start-Sleep -Seconds 2
-}
-```
-
-Displays multiple routes in sequence with a 2-second delay between each.
-
-### Example 5: Route with location descriptions
+### Example 2: Route with descriptions
 ```powershell
 Show-OpenStreetMapRoute `
-    -From @{ Location = "Tokyo"; Description = "?? Starting point: Tokyo Station area" } `
-    -To @{ Location = "Osaka"; Description = "?? Destination: Osaka Castle area" }
+    -From @{ Location = "Tokyo"; Description = "Starting point" } `
+    -To @{ Location = "Osaka"; Description = "Destination" }
 ```
 
-Displays a route with clickable descriptions at the start and end points.
+Locations accept hashtables with Description property for clickable markers.
 
-### Example 6: Route with 3D terrain visualization
+### Example 3: 3D terrain route
 ```powershell
-Show-OpenStreetMapRoute `
-    -From "Tokyo" `
-    -To "Mount Fuji" `
-    -Enable3D -Pitch 70 -Profile walking
+Show-OpenStreetMapRoute -From "Tokyo" -To "Mount Fuji" -Enable3D -Pitch 70 -Profile walking
 ```
 
-Displays a walking route to Mount Fuji with 3D terrain visualization for dramatic mountain views.
+3D visualization with terrain. Pitch controls camera tilt, Bearing controls rotation.
 
 ## PARAMETERS
 
@@ -89,7 +64,7 @@ Specifies the starting location for the route. This parameter accepts two format
    - Description (optional): Text to display when the marker is clicked
 
 Example with description:
-Show-OpenStreetMapRoute -From @{ Location = "Tokyo"; Description = "🚀 Starting point" } -To "Osaka"
+Show-OpenStreetMapRoute -From @{ Location = "Tokyo"; Description = "?? Starting point" } -To "Osaka"
 
 ```yaml
 Type: Object
@@ -112,7 +87,7 @@ Specifies the destination location for the route. This parameter accepts two for
    - Description (optional): Text to display when the marker is clicked
 
 Example with description:
-Show-OpenStreetMapRoute -From "Tokyo" -To @{ Location = "Osaka"; Description = "🎯 Destination" }
+Show-OpenStreetMapRoute -From "Tokyo" -To @{ Location = "Osaka"; Description = "?? Destination" }
 
 ```yaml
 Type: Object
@@ -202,6 +177,14 @@ Accept wildcard characters: False
 ```
 
 ### -Bearing
+Specifies the camera bearing (rotation) in degrees (0-360). The bearing represents the compass direction the camera is pointing:
+- 0 degrees = North (default)
+- 90 degrees = East
+- 180 degrees = South
+- 270 degrees = West
+
+This parameter is useful for orienting the view of 3D terrain features along the route.
+
 ```yaml
 Type: Double
 Parameter Sets: (All)
@@ -209,7 +192,7 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: None
+Default value: 0
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -293,11 +276,14 @@ This cmdlet does not generate any output.
 - Geocoding uses the Nominatim API (https://nominatim.openstreetmap.org/)
 - The map server runs on http://localhost:8765/
 - The map automatically centers and zooms to show the entire route
-- Route calculation is performed for driving routes
+- Route calculation supports multiple profiles: driving (default), walking, and cycling
+- 3D terrain data is sourced from AWS Terrarium tiles when -Enable3D is used
+- 3D buildings are available at zoom level 14 and above in supported areas
 - The browser tab is automatically opened when the server starts
 
 ## RELATED LINKS
 
 [Show-OpenStreetMap](Show-OpenStreetMap.md)
+[Start-OpenStreetMapTour](Start-OpenStreetMapTour.md)
 [OSRM API](http://project-osrm.org/)
 [OpenStreetMap](https://www.openstreetmap.org/)

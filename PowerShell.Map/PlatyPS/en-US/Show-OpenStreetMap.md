@@ -39,119 +39,45 @@ The cmdlet supports 3D visualization of buildings and terrain when using the -En
 
 ## EXAMPLES
 
-### Example 1: Display map by place name
+### Example 1: Basic usage
 ```powershell
+# Single location by name
 Show-OpenStreetMap "Tokyo Tower"
-```
 
-Uses geocoding to find "Tokyo Tower" and displays the map at that location.
-
-### Example 2: Display map with coordinates
-```powershell
+# By coordinates with zoom
 Show-OpenStreetMap -Location "35.6586,139.7454" -Zoom 15
-```
 
-Displays a map centered on Tokyo Tower (using coordinate string) with zoom level 15.
-
-### Example 3: Display multiple locations as markers
-```powershell
+# Multiple locations
 Show-OpenStreetMap -Location Tokyo, Osaka, Kyoto
 ```
 
-Displays a map with three markers at different cities. The map automatically centers and zooms to show all markers.
+Displays map using place names (geocoded), coordinates, or multiple locations as markers.
 
-### Example 4: Display map with a labeled marker
-```powershell
-Show-OpenStreetMap "Tokyo Tower" -Marker "🗼 東京タワー"
-```
-
-Displays a map with a marker labeled "🗼 東京タワー" at Tokyo Tower.
-
-### Example 5: Display markers using simple string array
-```powershell
-Show-OpenStreetMap -Markers Tokyo, Osaka, Kyoto, Hiroshima
-```
-
-Displays markers at multiple cities using a simple string array.
-
-### Example 6: Display markers with labels and colors (pipe-delimited format)
-```powershell
-Show-OpenStreetMap -Markers "Tokyo|🗼 東京タワー|red", "Osaka|🏯 大阪城|blue", "Kyoto|⛩️ 清水寺|gold"
-```
-
-Displays colored markers with labels using "Location|Label|Color" format.
-
-### Example 7: Display markers using hashtable array
-```powershell
-$markers = @(
-    @{Location="Tokyo"; Label="Tokyo"; Color="red"}
-    @{Location="Osaka"; Label="Osaka"; Color="blue"}
-    @{Location="Kyoto"; Label="Kyoto"; Color="green"}
-)
-Show-OpenStreetMap -Markers $markers
-```
-
-Displays a map with three colored markers at different cities using hashtable format.
-
-### Example 8: Display markers from CSV using pipeline
-```powershell
-Import-Csv locations.csv | Show-OpenStreetMap
-```
-
-Imports locations from a CSV file (with Latitude, Longitude, Label, Color columns) and displays them as markers on the map using pipeline.
-
-### Example 9: Create CSV data and display markers
-```powershell
-$locations = Import-Csv locations.csv
-$markers = $locations | ForEach-Object {
-    @{Location="$($_.Latitude),$($_.Longitude)"; Label=$_.Name; Color=$_.Color}
-}
-Show-OpenStreetMap -Markers $markers
-```
-
-Imports locations from a CSV file, converts to hashtable format, and displays as markers.
-Imports locations from a CSV file, converts to hashtable format, and displays as markers.
-
-### Example 10: Display 3D map with buildings and terrain
-```powershell
-Show-OpenStreetMap "Tokyo" -Enable3D
-```
-
-Displays Tokyo in 3D mode with buildings and terrain elevation. The camera is automatically tilted to 60 degrees for optimal 3D viewing.
-
-### Example 11: Display mountains with custom camera angle
-```powershell
-Show-OpenStreetMap "35.3606,138.7274" -Marker "Mt. Fuji" -Enable3D -Zoom 11 -Pitch 70 -Bearing 45
-```
-
-Displays Mt. Fuji in 3D with a 70-degree pitch (tilt) and 45-degree bearing (rotation) for dramatic terrain visualization.
-
-### Example 12: Display famous mountains in 3D
-```powershell
-Show-OpenStreetMap "45.9763,7.6586" -Marker "Matterhorn" -Enable3D -Zoom 12 -Pitch 70
-```
-
-Displays the Matterhorn mountain in the Alps with 3D terrain visualization.
-Displays the Matterhorn mountain in the Alps with 3D terrain visualization.
-
-### Example 13: Display location with description
-```powershell
-Show-OpenStreetMap "Tokyo Tower" -Description "🗼 Tokyo Tower is a 333m communications and observation tower in Tokyo"
-```
-
-Displays Tokyo Tower with a clickable description that appears in an information box.
-
-### Example 14: Display multiple locations with descriptions
+### Example 2: Structured locations with metadata
 ```powershell
 $locations = @(
-    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan - Population: 14 million" }
-    @{ Location = "Osaka"; Description = "🏯 Second largest city - Known for food culture" }
-    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital - 2000+ temples and shrines" }
+    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan"; Label = "東京"; Color = "red" }
+    @{ Location = "Osaka"; Description = "🏯 Second largest city"; Label = "大阪"; Color = "blue" }
+    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital"; Label = "京都"; Color = "gold" }
 )
 Show-OpenStreetMap -Locations $locations
 ```
 
-Displays three cities with custom descriptions and emoji. Click any marker to see its description.
+Displays markers with custom labels, colors, and clickable descriptions. Supports pipe-delimited strings ("Location|Label|Color") or hashtables.
+
+### Example 3: CSV pipeline
+```powershell
+Import-Csv locations.csv | Show-OpenStreetMap
+```
+
+CSV format: Latitude, Longitude, Label, Color columns. Pipeline automatically maps to marker properties.
+
+### Example 4: 3D visualization
+```powershell
+Show-OpenStreetMap "35.3606,138.7274" -Enable3D -Zoom 11 -Pitch 70 -Bearing 45
+```
+
+Displays Mt. Fuji with 3D terrain. Pitch controls tilt (0-85°), Bearing controls rotation (0-360°).
 
 ## PARAMETERS
 
