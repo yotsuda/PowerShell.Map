@@ -195,6 +195,17 @@ public static class MapHtml
         #location-description.dragging {
             opacity: 0.8;
         }
+        /* Permanent label popup styles */
+        .permanent-label .maplibregl-popup-content {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .permanent-label .maplibregl-popup-tip {
+            border-top-color: rgba(255, 255, 255, 0.95);
+        }
     </style>
 </head>
 <body>
@@ -529,8 +540,13 @@ public static class MapHtml
 
         function updateMapContent(state) {
 
-            // Clear existing markers
-            currentMarkers.forEach(marker => marker.remove());
+            // Clear existing markers and their label popups
+            currentMarkers.forEach(marker => {
+                if (marker._labelPopup) {
+                    marker._labelPopup.remove();
+                }
+                marker.remove();
+            });
             currentMarkers = [];
 
             // Clear existing route
@@ -656,29 +672,21 @@ public static class MapHtml
                 .setLngLat([lng, lat])
                 .addTo(map);
 
-            // Add label as a permanent text overlay next to the marker
+            // Add label as a permanent popup
             if (label) {
-                const labelEl = document.createElement('div');
-                labelEl.className = 'marker-label';
-                labelEl.textContent = label;
-                labelEl.style.position = 'absolute';
-                labelEl.style.left = '25px';
-                labelEl.style.top = '-5px';
-                labelEl.style.fontSize = '12px';
-                labelEl.style.fontWeight = 'bold';
-                labelEl.style.color = '#333';
-                labelEl.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                labelEl.style.padding = '2px 6px';
-                labelEl.style.borderRadius = '3px';
-                labelEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
-                labelEl.style.whiteSpace = 'nowrap';
-                labelEl.style.pointerEvents = 'none';
-                el.appendChild(labelEl);
+                const popup = new maplibregl.Popup({
+                    closeButton: false,
+                    closeOnClick: false,
+                    closeOnMove: false,
+                    offset: 25,
+                    className: 'permanent-label'
+                })
+                .setLngLat([lng, lat])
+                .setHTML(`<div style=""font-weight: bold; font-size: 13px; color: #333; white-space: nowrap;"">${label}</div>`)
+                .addTo(map);
                 
-                // Also add as popup for hover
-                const popup = new maplibregl.Popup({ offset: 25 })
-                    .setHTML(`<strong>${label}</strong>`);
-                marker.setPopup(popup);
+                // Store popup reference with marker
+                marker._labelPopup = popup;
             }
             
             // Add click event for description
