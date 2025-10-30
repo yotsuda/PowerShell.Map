@@ -8,8 +8,7 @@ Locale: en-US
 
 # PowerShell.Map Module
 ## Description
-PowerShell.Map is a module for displaying interactive 2D/3D maps using OpenStreetMap and MapLibre GL JS. This module provides cmdlets to:
-- Display interactive maps in your web browser with 2D or 3D visualization
+PowerShell.Map is a module for displaying interactive 2D/3D maps using OpenStreetMap and MapLibre GL JS. This module provides cmdlets to: - Display interactive maps in your web browser with 2D or 3D visualization
 - Add markers to maps with customizable labels, colors, and descriptions
 - Display clickable location descriptions with emoji support
 - Calculate and display routes between locations with multiple routing profiles (driving, walking, cycling)

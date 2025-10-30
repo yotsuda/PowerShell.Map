@@ -245,6 +245,7 @@ public static class MapHtml
         let debugMode = false;
         let is3DEnabled = false;
         let initialZoom = 13;
+        let currentDescriptionMarker = null; // Track marker with visible description
 
         function debugLog(message) {
             if (!debugMode) return;
@@ -298,6 +299,45 @@ public static class MapHtml
             document.getElementById('zoomValue').textContent = zoom.toFixed(1);
         }
 
+        function checkMarkerVisibility() {
+            debugLog('checkMarkerVisibility called');
+            
+            if (!map || !currentDescriptionMarker) {
+                debugLog('No map or marker: ' + JSON.stringify({ map: !!map, marker: currentDescriptionMarker }));
+                return;
+            }
+            
+            const descriptionOverlay = document.getElementById('location-description');
+            if (!descriptionOverlay.classList.contains('visible')) {
+                debugLog('Overlay not visible');
+                return;
+            }
+            
+            // Check if marker is within current view bounds
+            const bounds = map.getBounds();
+            const markerLng = currentDescriptionMarker.lng;
+            const markerLat = currentDescriptionMarker.lat;
+            
+            debugLog('Bounds check: W=' + bounds.getWest().toFixed(4) + 
+                    ' E=' + bounds.getEast().toFixed(4) + 
+                    ' S=' + bounds.getSouth().toFixed(4) + 
+                    ' N=' + bounds.getNorth().toFixed(4) + 
+                    ' Marker=[' + markerLng.toFixed(4) + ',' + markerLat.toFixed(4) + ']');
+            
+            const isVisible = markerLng >= bounds.getWest() && 
+                            markerLng <= bounds.getEast() && 
+                            markerLat >= bounds.getSouth() && 
+                            markerLat <= bounds.getNorth();
+            
+            debugLog('Marker visibility: ' + isVisible);
+            
+            // Hide description if marker is out of view
+            if (!isVisible) {
+                debugLog('HIDING DESCRIPTION - marker out of view');
+                descriptionOverlay.classList.remove('visible');
+                currentDescriptionMarker = null;
+            }
+        }
         function toggle3DBuildings() {
             is3DEnabled = !is3DEnabled;
             const toggleSwitch = document.getElementById('toggleSwitch');
@@ -383,7 +423,16 @@ public static class MapHtml
             });
             map.on('rotate', updateCameraInfo);
             map.on('pitch', updateCameraInfo);
-
+            
+            // Check marker visibility in real-time during map movement
+            map.on('move', checkMarkerVisibility);
+            
+            // Close description when clicking on map (not on marker)
+            map.on('click', () => {
+                const descriptionOverlay = document.getElementById('location-description');
+                descriptionOverlay.classList.remove('visible');
+                currentDescriptionMarker = null;
+            });
             // 3D toggle button handler
             document.getElementById('toggle3d').addEventListener('click', toggle3DBuildings);
         }
@@ -645,9 +694,16 @@ public static class MapHtml
             // Update location description (show after animation completes)
             const descriptionOverlay = document.getElementById('location-description');
             descriptionOverlay.classList.remove('visible'); // Hide during animation
+            currentDescriptionMarker = null; // Reset marker tracking
             
             if (state.locationDescription) {
                 descriptionOverlay.textContent = state.locationDescription;
+                
+                // Track the marker coordinates for visibility checking
+                currentDescriptionMarker = { 
+                    lng: state.longitude, 
+                    lat: state.latitude 
+                };
                 
                 // Show description after animation completes
                 const delayMs = state.animate ? (state.duration * 1000) : 0;
@@ -688,7 +744,6 @@ public static class MapHtml
                 // Store popup reference with marker
                 marker._labelPopup = popup;
             }
-            
             // Add click event for description
             if (description) {
                 const markerElement = marker.getElement();
@@ -699,6 +754,10 @@ public static class MapHtml
                     descriptionOverlay.textContent = description;
                     descriptionOverlay.style.whiteSpace = 'normal';
                     descriptionOverlay.classList.add('visible');
+                    
+                    // Track current marker for visibility check
+                    currentDescriptionMarker = { lng: lng, lat: lat };
+                    debugLog('Marker clicked, set currentDescriptionMarker: [' + lng.toFixed(4) + ',' + lat.toFixed(4) + ']');
                 });
             }
 
