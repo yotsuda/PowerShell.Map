@@ -162,7 +162,7 @@ Accept wildcard characters: False
 ```
 
 ### -Zoom
-Specifies the zoom level (1 to 19) for the map view. If not specified, the zoom level is automatically calculated based on the route distance to show the entire route. Lower numbers show a larger area, higher numbers show more detail.
+Specifies the zoom level (1 to 19) for the map view. When specified, displays the start point at the requested zoom level. When omitted, automatically fits bounds to show the entire route. Lower numbers show a larger area, higher numbers show more detail.
 
 ```yaml
 Type: Int32
@@ -275,7 +275,7 @@ This cmdlet does not generate any output.
 - Routes are calculated using the OSRM API (http://project-osrm.org/)
 - Geocoding uses the Nominatim API (https://nominatim.openstreetmap.org/)
 - The map server runs on http://localhost:8765/
-- The map automatically centers and zooms to show the entire route
+- When -Zoom is omitted, the map automatically fits bounds to show the entire route
 - Route calculation supports multiple profiles: driving (default), walking, and cycling
 - 3D terrain data is sourced from AWS Terrarium tiles when -Enable3D is used
 - 3D buildings are available at zoom level 14 and above in supported areas
