@@ -469,6 +469,35 @@ public static class MapHtml
                 descriptionOverlay.classList.remove('visible');
                 currentDescriptionMarker = null;
             });
+            
+            // Right double-click to zoom out
+            let rightClickCount = 0;
+            let rightClickTimer = null;
+            
+            map.getCanvas().addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Prevent context menu
+                
+                rightClickCount++;
+                
+                if (rightClickCount === 1) {
+                    rightClickTimer = setTimeout(() => {
+                        rightClickCount = 0;
+                    }, 300); // Reset after 300ms
+                } else if (rightClickCount === 2) {
+                    clearTimeout(rightClickTimer);
+                    rightClickCount = 0;
+                    
+                    // Zoom out
+                    const currentZoom = map.getZoom();
+                    map.flyTo({
+                        zoom: currentZoom - 1,
+                        duration: 300
+                    });
+                    debugLog('Right double-click: Zoom out to ' + (currentZoom - 1).toFixed(1));
+                }
+            });
+            
+            // Close description when clicking on map (not on marker)
             // 3D toggle button handler
             document.getElementById('toggle3d').addEventListener('click', toggle3DBuildings);
         }
