@@ -775,21 +775,40 @@ public static class MapHtml
             if (state.markers && state.markers.length > 0) {
                 debugLog(`Adding ${state.markers.length} markers`);
                 state.markers.forEach(marker => {
-                    addMarker(marker.longitude, marker.latitude, marker.label, marker.color, marker.description);
+                    const addedMarker = addMarker(marker.longitude, marker.latitude, marker.label, marker.color, marker.description);
+                    // Track single marker for description display
+                    if (state.markers.length === 1) {
+                        singleMarker = addedMarker;
+                    }
                 });
                 
-                // Fit bounds to show all markers
-                const bounds = new maplibregl.LngLatBounds();
-                state.markers.forEach(marker => {
-                    bounds.extend([marker.longitude, marker.latitude]);
-                });
-                map.fitBounds(bounds, { 
-                    padding: 50, 
-                    animate: state.animate, 
-                    duration: state.duration * 1000,
-                    pitch: targetPitch,
-                    bearing: targetBearing
-                });
+                // For single marker, use flyTo for smooth animation
+                if (state.markers.length === 1) {
+                    const marker = state.markers[0];
+                    const zoom = state.zoom || 13;
+                    flyTo(marker.longitude, marker.latitude, zoom, state.animate, state.duration, targetPitch, targetBearing);
+                } else {
+                    // For multiple markers, fit bounds to show all
+                    const bounds = new maplibregl.LngLatBounds();
+                    state.markers.forEach(marker => {
+                        bounds.extend([marker.longitude, marker.latitude]);
+                    });
+                    
+                    const fitBoundsOptions = { 
+                        padding: 50, 
+                        animate: state.animate, 
+                        duration: state.duration * 1000,
+                        pitch: targetPitch,
+                        bearing: targetBearing
+                    };
+                    
+                    // If zoom is explicitly specified, use it as maxZoom
+                    if (state.zoom) {
+                        fitBoundsOptions.maxZoom = state.zoom;
+                    }
+                    
+                    map.fitBounds(bounds, fitBoundsOptions);
+                }
             } else if (state.marker) {
                 // Single marker
                 debugLog(`Adding single marker: ${state.marker}`);

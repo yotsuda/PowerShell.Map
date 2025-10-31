@@ -283,7 +283,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
             }
             
             ExecuteWithRetry(server, () => server.UpdateRoute(fromLat, fromLon, toLat, toLon, 
-                routeCoordinates, Color, Width, Zoom, false, finalFromLabel, finalToLabel, Duration, Enable3D, Bearing, Pitch, fromDescription, toDescription));
+                routeCoordinates, Color, Width, Zoom, false, finalFromLabel, finalToLabel, Duration, Enable3D, Bearing, Pitch, fromDescription, toDescription, GetMarkerColor(fromColor), GetMarkerColor(toColor)));
 
             WriteVerbose("Map updated with route");
             

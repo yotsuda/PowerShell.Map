@@ -88,7 +88,7 @@ public abstract class MapCmdletBase : PSCmdlet
     /// 色名または#rgb形式を16進数カラーコードに変換
     /// nullの場合はnullを返す（デフォルトの涙型マーカーを使用）
     /// </summary>
-    protected string? GetMarkerColor(string? color)
+    protected static string? GetMarkerColor(string? color)
     {
         if (string.IsNullOrWhiteSpace(color))
         {
@@ -101,18 +101,50 @@ public abstract class MapCmdletBase : PSCmdlet
             return color;
         }
 
-        // 色名を変換
+        // 色名を変換 (Bootstrap colors + common web colors)
         return color.ToLower() switch
         {
+            // Bootstrap theme colors
             "red" => "#dc3545",
             "blue" => "#0d6efd",
             "green" => "#198754",
             "orange" => "#fd7e14",
-            "violet" => "#6f42c1",
             "yellow" => "#ffc107",
-            "grey" => "#6c757d",
+            "violet" or "purple" => "#6f42c1",
+            "indigo" => "#6610f2",
+            "pink" => "#d63384",
+            "cyan" => "#0dcaf0",
+            "teal" => "#20c997",
+            
+            // Grayscale
             "black" => "#212529",
+            "grey" or "gray" => "#6c757d",
+            "white" => "#ffffff",
+            "silver" => "#c0c0c0",
+            
+            // Common web colors
+            "darkred" => "#8b0000",
+            "darkgreen" => "#006400",
+            "darkblue" => "#00008b",
+            "lightred" => "#ff6b6b",
+            "lightgreen" => "#90ee90",
+            "lightblue" => "#add8e6",
+            "navy" => "#000080",
+            "lime" => "#00ff00",
+            "magenta" => "#ff00ff",
+            "maroon" => "#800000",
+            "olive" => "#808000",
+            "brown" => "#a52a2a",
             "gold" => "#ffd700",
+            "crimson" => "#dc143c",
+            "coral" => "#ff7f50",
+            "turquoise" => "#40e0d0",
+            "skyblue" => "#87ceeb",
+            "lavender" => "#e6e6fa",
+            "plum" => "#dda0dd",
+            "salmon" => "#fa8072",
+            "khaki" => "#f0e68c",
+            
             _ => null // Unknown color = use default teardrop marker
         };
     }

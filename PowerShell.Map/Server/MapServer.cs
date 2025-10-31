@@ -185,7 +185,7 @@ public class MapServer
         return true;
     }
 
-    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool enable3D = false, double bearing = 0, double pitch = 0)
+    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool enable3D = false, double bearing = 0, double pitch = 0, double duration = 1.0)
     {
         lock (_lock)
         {
@@ -216,6 +216,13 @@ public class MapServer
             // Auto-adjust pitch for 3D if not explicitly set
             var adjustedPitch = pitch == 0 && enable3D ? 60 : pitch;
             
+            // For single marker, use its description as location description
+            string? locationDescription = null;
+            if (markers.Length == 1 && !string.IsNullOrEmpty(markers[0].Description))
+            {
+                locationDescription = markers[0].Description;
+            }
+            
             _currentState = new MapState
             {
                 Latitude = centerLat,
@@ -225,7 +232,10 @@ public class MapServer
                 DebugMode = debugMode,
                 Enable3D = enable3D,
                 Bearing = bearing,
-                Pitch = adjustedPitch
+                Pitch = adjustedPitch,
+                Animate = duration > 0,
+                Duration = duration,
+                LocationDescription = locationDescription
             };
         }
         
@@ -238,7 +248,8 @@ public class MapServer
                            int? zoom = null, bool debugMode = false,
                            string? fromLocation = null, string? toLocation = null, 
                            double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0,
-                           string? fromDescription = null, string? toDescription = null)
+                           string? fromDescription = null, string? toDescription = null,
+                           string? fromMarkerColor = null, string? toMarkerColor = null)
     {
         lock (_lock)
         {
@@ -254,8 +265,8 @@ public class MapServer
             // Create route markers for From and To locations
             var routeMarkers = new[]
             {
-                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = fromLocation ?? "Start", Color = "green", Description = fromDescription },
-                new MapMarker { Latitude = toLat, Longitude = toLon, Label = toLocation ?? "Goal", Color = "red", Description = toDescription }
+                new MapMarker { Latitude = fromLat, Longitude = fromLon, Label = fromLocation ?? "Start", Color = fromMarkerColor, Description = fromDescription },
+                new MapMarker { Latitude = toLat, Longitude = toLon, Label = toLocation ?? "Goal", Color = toMarkerColor, Description = toDescription }
             };
             _currentState = new MapState
             {

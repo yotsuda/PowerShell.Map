@@ -312,7 +312,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     
                     if (validMarkers.Length > 0)
                     {
-                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch));
+                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch, Duration));
                         WriteVerbose($"Map updated with {validMarkers.Length} markers");
                     }
                     
@@ -442,7 +442,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 
                 if (validMarkers.Length > 0)
                 {
-                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch));
+                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch, Duration));
                     WriteVerbose($"Map updated with {validMarkers.Length} markers from pipeline");
                 }
                 
