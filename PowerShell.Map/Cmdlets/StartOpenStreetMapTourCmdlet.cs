@@ -194,7 +194,7 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                     label = tourLocation.Location;
                 }
                 // Move to location with animation (always animated in tour mode)
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch, tourLocation.Description));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, GetMarkerColor(tourLocation.Color), DebugMode, Duration, Enable3D, Bearing, Pitch, tourLocation.Description));
                 
                 // Output progress info
                 WriteObject(new MapMarker

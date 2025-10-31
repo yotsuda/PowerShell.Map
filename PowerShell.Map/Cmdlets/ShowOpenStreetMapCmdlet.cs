@@ -369,7 +369,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 {
                     label = Location[0];
                 }
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, markerColor: null, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
                 
                 // マーカー情報を出力
@@ -396,7 +396,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 string? marker = currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, markerColor: null, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
             }
         }

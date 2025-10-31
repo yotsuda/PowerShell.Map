@@ -1,4 +1,4 @@
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using PowerShell.Map.Server;
 
 namespace PowerShell.Map.Cmdlets;
@@ -86,12 +86,13 @@ public abstract class MapCmdletBase : PSCmdlet
 
     /// <summary>
     /// 色名または#rgb形式を16進数カラーコードに変換
+    /// nullの場合はnullを返す（デフォルトの涙型マーカーを使用）
     /// </summary>
-    protected string GetMarkerColor(string? color)
+    protected string? GetMarkerColor(string? color)
     {
         if (string.IsNullOrWhiteSpace(color))
         {
-            return "#dc3545"; // Default: red
+            return null; // No color = use default teardrop marker
         }
 
         // #rgb形式ならそのまま返す
@@ -112,7 +113,7 @@ public abstract class MapCmdletBase : PSCmdlet
             "grey" => "#6c757d",
             "black" => "#212529",
             "gold" => "#ffd700",
-            _ => "#dc3545" // Unknown color defaults to red
+            _ => null // Unknown color = use default teardrop marker
         };
     }
 }

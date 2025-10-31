@@ -145,7 +145,7 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int? zoom, string? marker = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0, string? locationDescription = null)
+    public bool UpdateMap(double latitude, double longitude, int? zoom, string? marker = null, string? markerColor = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0, string? locationDescription = null)
     {
         lock (_lock)
         {
@@ -158,6 +158,7 @@ public class MapServer
                 Longitude = longitude,
                 Zoom = zoom,
                 Marker = marker,
+                MarkerColor = markerColor,  // null = default teardrop marker
                 DebugMode = debugMode,
                 Animate = duration > 0,  // Auto-enable animation if duration is specified
                 Duration = duration,
@@ -525,6 +526,7 @@ public class MapState
     public double Longitude { get; set; }
     public int? Zoom { get; set; }
     public string? Marker { get; set; }
+    public string? MarkerColor { get; set; }  // Color for single marker
     public bool DebugMode { get; set; }
     public double[][]? RouteCoordinates { get; set; }  // [lon, lat] pairs
     public string? RouteColor { get; set; }

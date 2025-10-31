@@ -793,10 +793,7 @@ public static class MapHtml
             } else if (state.marker) {
                 // Single marker
                 debugLog(`Adding single marker: ${state.marker}`);
-                singleMarker = addMarker(state.longitude, state.latitude, state.marker, '#dc3545', state.locationDescription);
-                flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
-            } else {
-                // Just move to location
+                singleMarker = addMarker(state.longitude, state.latitude, state.marker, state.markerColor, state.locationDescription);
                 flyTo(state.longitude, state.latitude, state.zoom, state.animate, state.duration, targetPitch, targetBearing);
             }
 
@@ -884,18 +881,31 @@ public static class MapHtml
         }
 
         function addMarker(lng, lat, label, color, description) {
-            const el = document.createElement('div');
-            el.className = 'marker';
-            el.style.width = '20px';
-            el.style.height = '20px';
-            el.style.borderRadius = '50%';
-            el.style.backgroundColor = color || '#dc3545';
-            el.style.border = '2px solid white';
-            el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            let marker;
+            
+            // If color is specified, use custom colored circular marker
+            if (color) {
+                const el = document.createElement('div');
+                el.className = 'marker';
+                el.style.width = '20px';
+                el.style.height = '20px';
+                el.style.borderRadius = '50%';
+                el.style.backgroundColor = color;
+                el.style.border = '2px solid white';
+                el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
 
-            const marker = new maplibregl.Marker(el)
-                .setLngLat([lng, lat])
-                .addTo(map);
+                marker = new maplibregl.Marker({
+                    element: el,
+                    anchor: 'center'
+                })
+                    .setLngLat([lng, lat])
+                    .addTo(map);
+            } else {
+                // Use default teardrop marker (blue)
+                marker = new maplibregl.Marker()
+                    .setLngLat([lng, lat])
+                    .addTo(map);
+            }
 
             // Add label as a permanent popup
             if (label) {
