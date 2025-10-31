@@ -202,9 +202,20 @@ public static class MapHtml
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             padding: 4px 10px;
             border: 1px solid rgba(0,0,0,0.1);
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
         .permanent-label .maplibregl-popup-tip {
             border-top-color: rgba(255, 255, 255, 0.95);
+        }
+        /* Attribution control - prevent text selection */
+        .maplibregl-ctrl-attrib {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
     </style>
 </head>
@@ -400,12 +411,18 @@ public static class MapHtml
                 center: [state.longitude, state.latitude],
                 zoom: state.zoom,
                 pitch: state.pitch || 0,
-                bearing: state.bearing || 0
+                bearing: state.bearing || 0,
+                attributionControl: false
             });
 
 
             // Add scale control
             map.addControl(new maplibregl.ScaleControl());
+            
+            // Add compact attribution control (always collapsed, click to toggle)
+            map.addControl(new maplibregl.AttributionControl({
+                compact: true
+            }));
 
             // Reset button handler
             document.getElementById('resetBtn').addEventListener('click', () => {
