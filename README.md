@@ -86,7 +86,7 @@ Install-Module PowerShell.MCP
 
 Once configured, simply tell Claude to set up the module:
 
-**"In PowerShell console, run Import-Module PowerShell.Map and check how to use it."**
+**"Show me some fun map demos using the PowerShell.Map module"**
 
 Then ask for what you want:
 
