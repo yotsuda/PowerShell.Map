@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Map Source Diagnostic</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <style>
+        body { margin: 0; font-family: monospace; }
+        #map { height: 50vh; }
+        #info { padding: 20px; background: #f0f0f0; }
+        .source { background: white; margin: 10px 0; padding: 10px; border-left: 3px solid #2563eb; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="info">
+        <h2>Map Source Diagnostic</h2>
+        <div id="sources"></div>
+        <div id="layers"></div>
+    </div>
+    <script>
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://tiles.openfreemap.org/styles/liberty',
+            center: [139.7454, 35.6586],
+            zoom: 13
+        });
+
+        map.on('load', () => {
+            const style = map.getStyle();
+            const sourcesDiv = document.getElementById('sources');
+            const layersDiv = document.getElementById('layers');
+            
+            // Display all sources
+            sourcesDiv.innerHTML = '<h3>Available Sources:</h3>';
+            for (const [name, source] of Object.entries(style.sources)) {
+                sourcesDiv.innerHTML += `<div class="source"><strong>${name}</strong>: ${source.type}</div>`;
+            }
+            
+            // Display building layers
+            layersDiv.innerHTML = '<h3>Building Layers:</h3>';
+            const buildingLayers = style.layers.filter(l => 
+                l.id.toLowerCase().includes('building') || 
+                l['source-layer'] === 'building'
+            );
+            
+            buildingLayers.forEach(layer => {
+                layersDiv.innerHTML += `<div class="source">
+                    <strong>${layer.id}</strong><br>
+                    Type: ${layer.type}<br>
+                    Source: ${layer.source}<br>
+                    Source-Layer: ${layer['source-layer'] || 'N/A'}
+                </div>`;
+            });
+            
+            if (buildingLayers.length === 0) {
+                layersDiv.innerHTML += '<div class="source" style="border-color: red;">⚠️ No building layers found!</div>';
+            }
+        });
+    </script>
+</body>
+</html>

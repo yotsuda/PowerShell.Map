@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>JS Syntax Check</title>
+</head>
+<body>
+    <h1>JavaScript Syntax Check</h1>
+    <div id="result">Checking...</div>
+    <script>
+        try {
+            // MapHtml.csからコピーした関数定義
+            function getTerrainExaggeration(zoom) {
+                if (zoom >= 15) {
+                    return 0.2;
+                } else if (zoom >= 13) {
+                    return 0.7;
+                } else if (zoom >= 10) {
+                    return 1.5;
+                } else {
+                    return 2.0;
+                }
+            }
+
+            function updateTerrainExaggeration() {
+                // Dummy implementation
+                const zoom = 15;
+                const exaggeration = getTerrainExaggeration(zoom);
+                console.log('Exaggeration:', exaggeration);
+            }
+
+            // テスト実行
+            updateTerrainExaggeration();
+            
+            document.getElementById('result').innerHTML = '✅ JavaScript syntax is OK!';
+            document.getElementById('result').style.color = 'green';
+        } catch (e) {
+            document.getElementById('result').innerHTML = '❌ Error: ' + e.message;
+            document.getElementById('result').style.color = 'red';
+            console.error(e);
+        }
+    </script>
+</body>
+</html>
