@@ -145,25 +145,28 @@ public class MapServer
         }
     }
 
-    public bool UpdateMap(double latitude, double longitude, int? zoom, string? marker = null, string? markerColor = null, bool debugMode = false, double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0, string? locationDescription = null)
+    public bool UpdateMap(double latitude, double longitude, int? zoom, string? marker = null, string? markerColor = null, bool debugMode = false, double duration = 1.0, bool? enable3D = null, double? bearing = null, double? pitch = null, string? locationDescription = null)
     {
         lock (_lock)
         {
-            // Auto-adjust pitch for 3D if not explicitly set
-            var adjustedPitch = pitch == 0 && enable3D ? 60 : pitch;
+            // If parameters are not specified, preserve current map state
+            var adjustedZoom = zoom ?? _currentState.Zoom;
+            var adjustedEnable3D = enable3D ?? _currentState.Enable3D;
+            var adjustedBearing = bearing ?? _currentState.Bearing;
+            var adjustedPitch = pitch ?? _currentState.Pitch;
             
             _currentState = new MapState
             {
                 Latitude = latitude,
                 Longitude = longitude,
-                Zoom = zoom,
+                Zoom = adjustedZoom,
                 Marker = marker,
                 MarkerColor = markerColor,  // null = default teardrop marker
                 DebugMode = debugMode,
                 Animate = duration > 0,  // Auto-enable animation if duration is specified
                 Duration = duration,
-                Enable3D = enable3D,
-                Bearing = bearing,
+                Enable3D = adjustedEnable3D,
+                Bearing = adjustedBearing,
                 Pitch = adjustedPitch,
                 LocationDescription = locationDescription
             };
@@ -184,8 +187,8 @@ public class MapServer
         NotifyClients();
         return true;
     }
-
-    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool enable3D = false, double bearing = 0, double pitch = 0, double duration = 1.0)
+    
+    public bool UpdateMapWithMarkers(MapMarker[] markers, int? zoom = null, bool debugMode = false, bool? enable3D = null, double? bearing = null, double? pitch = null, double duration = 1.0)
     {
         lock (_lock)
         {
@@ -210,11 +213,25 @@ public class MapServer
             var centerLat = (minLat + maxLat) / 2;
             var centerLon = (minLon + maxLon) / 2;
             
-            // Calculate appropriate zoom if not specified
-            int calculatedZoom = zoom ?? CalculateOptimalZoom(maxLat - minLat, maxLon - minLon);
+            // If zoom not specified, try to use current zoom; if no current zoom, calculate optimal
+            int calculatedZoom;
+            if (zoom.HasValue)
+            {
+                calculatedZoom = zoom.Value;
+            }
+            else if (_currentState.Zoom.HasValue)
+            {
+                calculatedZoom = _currentState.Zoom.Value;
+            }
+            else
+            {
+                calculatedZoom = CalculateOptimalZoom(maxLat - minLat, maxLon - minLon);
+            }
             
-            // Auto-adjust pitch for 3D if not explicitly set
-            var adjustedPitch = pitch == 0 && enable3D ? 60 : pitch;
+            // If parameters are not specified, preserve current map state
+            var adjustedEnable3D = enable3D ?? _currentState.Enable3D;
+            var adjustedBearing = bearing ?? _currentState.Bearing;
+            var adjustedPitch = pitch ?? _currentState.Pitch;
             
             // For single marker, use its description as location description
             string? locationDescription = null;
@@ -230,8 +247,8 @@ public class MapServer
                 Zoom = calculatedZoom,
                 Markers = markers,
                 DebugMode = debugMode,
-                Enable3D = enable3D,
-                Bearing = bearing,
+                Enable3D = adjustedEnable3D,
+                Bearing = adjustedBearing,
                 Pitch = adjustedPitch,
                 Animate = duration > 0,
                 Duration = duration,
@@ -242,25 +259,29 @@ public class MapServer
         NotifyClients(); // Notify if clients are connected, but state is always updated
         return true;
     }
-
     public bool UpdateRoute(double fromLat, double fromLon, double toLat, double toLon,
                            double[][] routeCoordinates, string? color = null, int width = 4, 
                            int? zoom = null, bool debugMode = false,
                            string? fromLocation = null, string? toLocation = null, 
-                           double duration = 1.0, bool enable3D = false, double bearing = 0, double pitch = 0,
+                           double duration = 1.0, bool? enable3D = null, double? bearing = null, double? pitch = null,
                            string? fromDescription = null, string? toDescription = null,
                            string? fromMarkerColor = null, string? toMarkerColor = null)
     {
         lock (_lock)
         {
             // Calculate center point for route display
-            // When zoom is user-specified, use start point; otherwise use center point
             var centerLat = (fromLat + toLat) / 2;
             var centerLon = (fromLon + toLon) / 2;
             
             // Use start point if zoom is user-specified, otherwise use center point
             var displayLat = zoom.HasValue ? fromLat : centerLat;
             var displayLon = zoom.HasValue ? fromLon : centerLon;
+            
+            // If parameters are not specified, preserve current map state
+            var adjustedZoom = zoom ?? _currentState.Zoom;
+            var adjustedBearing = bearing ?? _currentState.Bearing;
+            var adjustedPitch = pitch ?? _currentState.Pitch;
+            var adjustedEnable3D = enable3D ?? _currentState.Enable3D;
             
             // Create route markers for From and To locations
             var routeMarkers = new[]
@@ -272,7 +293,7 @@ public class MapServer
             {
                 Latitude = displayLat,
                 Longitude = displayLon,
-                Zoom = zoom,
+                Zoom = adjustedZoom,
                 RouteCoordinates = routeCoordinates,
                 RouteColor = color ?? "#0066ff",
                 RouteWidth = width,
@@ -280,16 +301,15 @@ public class MapServer
                 DebugMode = debugMode,
                 Animate = duration > 0,  // Auto-enable animation if duration is specified
                 Duration = duration,
-                Enable3D = enable3D,
-                Bearing = bearing,
-                Pitch = pitch
+                Enable3D = adjustedEnable3D,
+                Bearing = adjustedBearing,
+                Pitch = adjustedPitch
             };
         }
         
         NotifyClients(); // Notify if clients are connected, but state is always updated
         return true;
     }
-
     private bool NotifyClients()
     {
         // Return false if no clients are connected

@@ -12,7 +12,7 @@
 RootModule = 'PowerShell.Map.dll'
 
 # Version number of this module.
-ModuleVersion = '1.0.0'
+ModuleVersion = '1.0.1'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Core')
@@ -30,7 +30,7 @@ CompanyName = 'Yoshifumi Tsuda'
 Copyright = '(c) Yoshifumi Tsuda. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Interactive map visualization for PowerShell using Leaflet.js and OpenStreetMap. Although usable standalone, this module is primarily designed for Claude Desktop integration via the PowerShell.MCP module, enabling AI-powered map visualization.'
+Description = 'Interactive 2D/3D map visualization for PowerShell using MapLibre GL JS and OpenStreetMap. Although usable standalone, this module is primarily designed for Claude Desktop integration via the PowerShell.MCP module, enabling AI-powered map visualization.'
 
 # Minimum version of the PowerShell engine required by this module
 PowerShellVersion = '7.2'
@@ -113,14 +113,18 @@ PrivateData = @{
         Platforms = @('Windows')
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'PowerShell.Map v1.0.0 - Interactive Map Visualization
+        ReleaseNotes = 'PowerShell.Map v1.0.1 - 3D Map Support & Enhanced Descriptions
+
+=== What''s New in v1.0.1 ===
+• 🎮 3D Map Visualization - Interactive 3D terrain and building views
+• 📝 Location Descriptions - Display detailed information for each marker
 
 === Key Features ===
-• 🗺️ Interactive OpenStreetMap Display
+• 🗺️ Interactive 2D/3D OpenStreetMap Display
 • 🛣️ Route Visualization with Turn-by-Turn Directions
 • 🎬 Animated Tours for Multiple Locations
 • 🌍 Geocoding & Reverse Geocoding
-• 📍 Multiple Markers with Custom Colors
+• 📍 Multiple Markers with Custom Colors and Descriptions
 • ⚡ Smooth Animations with Duration Control
 • 🎯 CSV Pipeline Support
 
@@ -134,17 +138,27 @@ PrivateData = @{
 # Display a location
 Show-OpenStreetMap "Tokyo Tower"
 
-# Display multiple locations with colors
-Show-OpenStreetMap Tokyo, Osaka, Kyoto
+# Display multiple locations
+Show-OpenStreetMap -Location Tokyo, Osaka, Kyoto
+
+# With coordinates and zoom
+Show-OpenStreetMap -Location "35.6586,139.7454" -Zoom 15
+
+# With descriptions and colors
+$locations = @(
+    @{ Location = "Tokyo"; Description = "Capital of Japan"; Color = "red" }
+    @{ Location = "Osaka"; Description = "Second largest city"; Color = "blue" }
+)
+Show-OpenStreetMap -Locations $locations
+
+# 3D terrain visualization
+Show-OpenStreetMap "35.3606,138.7274" -Enable3D -Zoom 11 -Pitch 70
 
 # Show route between two locations
 Show-OpenStreetMapRoute -From Tokyo -To Osaka -Color "#ff0000"
 
 # Create animated tour
 Start-OpenStreetMapTour Paris, London, Berlin -Duration 2.5 -PauseTime 2
-
-# Use coordinates
-Show-OpenStreetMap -Location "35.6762,139.6503" -Marker "Tokyo Tower" -Zoom 15
 
 # CSV pipeline
 Import-Csv locations.csv | Show-OpenStreetMap

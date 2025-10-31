@@ -53,23 +53,34 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
 
     /// <summary>
     /// Enable 3D display (buildings and terrain)
+    /// If neither Enable3D nor Disable3D is specified, preserves current 3D state
     /// </summary>
     [Parameter]
     public SwitchParameter Enable3D { get; set; }
 
     /// <summary>
+    /// Disable 3D display (return to 2D top-down view)
+    /// If neither Enable3D nor Disable3D is specified, preserves current 3D state
+    /// </summary>
+    [Parameter]
+    public SwitchParameter Disable3D { get; set; }
+
+
+    /// <summary>
     /// Camera bearing in degrees (0-360, 0=North, 90=East, 180=South, 270=West)
+    /// If not specified, defaults to 0 (North)
     /// </summary>
     [Parameter]
     [ValidateRange(0, 360)]
-    public double Bearing { get; set; } = 0;
+    public double? Bearing { get; set; }
 
     /// <summary>
     /// Camera pitch in degrees (0-85, 0=top-down view, 60=default for 3D, 85=almost horizontal)
+    /// If not specified, automatically sets to 60 when Enable3D is true, otherwise 0
     /// </summary>
     [Parameter]
     [ValidateRange(0, 85)]
-    public double Pitch { get; set; } = 0;
+    public double? Pitch { get; set; }
 
     /// <summary>
     /// Optional description to display for the location (only for single location display)
@@ -81,20 +92,36 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
 
     private readonly List<MapMarker> _pipelineMarkers = [];
 
+    /// <summary>
+    /// Convert Enable3D/Disable3D switches to nullable bool
+    /// </summary>
+    /// <returns>true if Enable3D, false if Disable3D, null if neither (preserve state)</returns>
+    private bool? GetEnable3DParameter()
+    {
+        if (Enable3D && Disable3D)
+        {
+            WriteError(new ErrorRecord(
+                new ArgumentException("Cannot specify both -Enable3D and -Disable3D"),
+                "MutuallyExclusiveParameters",
+                ErrorCategory.InvalidArgument,
+                null));
+            return null;
+        }
+        
+        if (Enable3D) return true;
+        if (Disable3D) return false;
+        return null; // Preserve current state
+    }
+
     protected override void ProcessRecord()
     {
         try
         {
             var server = MapServer.Instance;
+            
+            bool? enable3D = GetEnable3DParameter();
+            if (Enable3D && Disable3D) return; // Error already written
 
-            // Automatically enable 3D mode if Bearing or Pitch is specified
-            if ((Bearing != 0 || Pitch != 0) && !Enable3D)
-            {
-                Enable3D = true;
-                WriteVerbose("3D mode automatically enabled due to Bearing/Pitch parameters");
-            }
-
-            // パイプラインからプロパティ経由で受け取った場合
             if (ParameterSetName == PipelineSet && !string.IsNullOrEmpty(Latitude) && !string.IsNullOrEmpty(Longitude))
             {
                 if (double.TryParse(Latitude, out double lat) && double.TryParse(Longitude, out double lon))
@@ -312,7 +339,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     
                     if (validMarkers.Length > 0)
                     {
-                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch, Duration));
+                        ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, enable3D, Bearing, Pitch, Duration));
                         WriteVerbose($"Map updated with {validMarkers.Length} markers");
                     }
                     
@@ -347,8 +374,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                     return;
                 }
 
-                int zoom = Zoom ?? (Enable3D ? 17 : 13);
-                
                 // ラベルを決定: 座標の場合は逆ジオコーディング→座標、ロケーション名の場合はロケーション名
                 string label;
                 if (isSingleCoord)
@@ -369,8 +394,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 {
                     label = Location[0];
                 }
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, label, markerColor: null, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
-                WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, markerColor: null, DebugMode, Duration, enable3D, Bearing, Pitch, Description));
                 
                 // マーカー情報を出力
                 var resultMarker = new MapMarker
@@ -396,7 +420,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 string? marker = currentState.Marker;
 
                 WriteVerbose($"Using current location: {lat}, {lon}");
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, markerColor: null, DebugMode, Duration, Enable3D, Bearing, Pitch, Description));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, zoom, marker, markerColor: null, DebugMode, Duration, enable3D, Bearing, Pitch, Description));
                 WriteVerbose($"Map updated: {lat}, {lon} @ zoom {zoom}");
             }
         }
@@ -418,6 +442,9 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             try
             {
                 var server = MapServer.Instance;
+                
+                bool? enable3D = GetEnable3DParameter();
+                if (Enable3D && Disable3D) return; // Error already written
                 
                 // 成功したマーカーのみを地図に表示対象とする
                 var successMarkers = _pipelineMarkers.Where(m => m.Status == "Success").ToArray();
@@ -442,7 +469,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
                 
                 if (validMarkers.Length > 0)
                 {
-                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, Enable3D, Bearing, Pitch, Duration));
+                    ExecuteWithRetry(server, () => server.UpdateMapWithMarkers(validMarkers, Zoom, DebugMode, enable3D, Bearing, Pitch, Duration));
                     WriteVerbose($"Map updated with {validMarkers.Length} markers from pipeline");
                 }
                 

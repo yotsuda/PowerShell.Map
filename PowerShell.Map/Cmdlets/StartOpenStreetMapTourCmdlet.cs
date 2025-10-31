@@ -49,23 +49,34 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
 
     /// <summary>
     /// Enable 3D display (buildings and terrain)
+    /// If neither Enable3D nor Disable3D is specified, preserves current 3D state
     /// </summary>
     [Parameter]
     public SwitchParameter Enable3D { get; set; }
 
     /// <summary>
+    /// Disable 3D display (return to 2D top-down view)
+    /// If neither Enable3D nor Disable3D is specified, preserves current 3D state
+    /// </summary>
+    [Parameter]
+    public SwitchParameter Disable3D { get; set; }
+
+
+    /// <summary>
     /// Camera bearing in degrees (0-360, 0=North, 90=East, 180=South, 270=West)
+    /// If not specified, preserves current bearing
     /// </summary>
     [Parameter]
     [ValidateRange(0, 360)]
-    public double Bearing { get; set; } = 0;
+    public double? Bearing { get; set; }
 
     /// <summary>
     /// Camera pitch in degrees (0-85, 0=top-down view, 60=default for 3D, 85=almost horizontal)
+    /// If not specified, preserves current pitch
     /// </summary>
     [Parameter]
     [ValidateRange(0, 85)]
-    public double Pitch { get; set; } = 0;
+    public double? Pitch { get; set; }
 
     // /// <summary>
     // /// Enable debug mode to show detailed logging
@@ -135,16 +146,29 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
         try
         {
             var server = MapServer.Instance;
-
-            // Automatically enable 3D mode if Bearing or Pitch is specified
-            if ((Bearing != 0 || Pitch != 0) && !Enable3D)
+            
+            // Convert Enable3D/Disable3D switches to nullable bool
+            bool? enable3D = null;
+            if (Enable3D && Disable3D)
             {
-                Enable3D = true;
-                WriteVerbose("3D mode automatically enabled due to Bearing/Pitch parameters");
+                WriteError(new ErrorRecord(
+                    new ArgumentException("Cannot specify both -Enable3D and -Disable3D"),
+                    "MutuallyExclusiveParameters",
+                    ErrorCategory.InvalidArgument,
+                    null));
+                return;
             }
-            
+            else if (Enable3D)
+            {
+                enable3D = true;
+            }
+            else if (Disable3D)
+            {
+                enable3D = false;
+            }
+            // If neither is specified, enable3D remains null (preserve current state)
+
             WriteVerbose($"Starting map tour with {_tourLocations.Count} locations");
-            
             for (int i = 0; i < _tourLocations.Count; i++)
             {
                 var tourLocation = _tourLocations[i];
@@ -194,7 +218,7 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
                     label = tourLocation.Location;
                 }
                 // Move to location with animation (always animated in tour mode)
-                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, GetMarkerColor(tourLocation.Color), DebugMode, Duration, Enable3D, Bearing, Pitch, tourLocation.Description));
+                ExecuteWithRetry(server, () => server.UpdateMap(lat, lon, Zoom, label, GetMarkerColor(tourLocation.Color), DebugMode, Duration, enable3D, Bearing, Pitch, tourLocation.Description));
                 
                 // Output progress info
                 WriteObject(new MapMarker

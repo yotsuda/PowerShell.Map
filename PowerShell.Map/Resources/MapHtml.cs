@@ -412,6 +412,7 @@ public static class MapHtml
                 zoom: state.zoom,
                 pitch: state.pitch || 0,
                 bearing: state.bearing || 0,
+                maxPitch: 85,  // Allow pitch up to 85 degrees (default is 60)
                 attributionControl: false
             });
 
@@ -758,16 +759,13 @@ public static class MapHtml
                     enable3DFeatures();
                 }
             } else {
-                if (map.getLayer('3d-buildings')) {
-                    map.removeLayer('3d-buildings');
-                    debugLog('3D buildings layer removed');
-                }
+                // Remove all 3D layers using the remove3DFeatures function
+                remove3DFeatures();
             }
 
             // Calculate camera angles
-            // Calculate camera angles
-            const targetPitch = state.pitch !== undefined ? state.pitch : (state.enable3D ? 60 : 0);
-            const targetBearing = state.bearing !== undefined ? state.bearing : 0;
+            const targetPitch = state.pitch ?? (state.enable3D ? 60 : 0);
+            const targetBearing = state.bearing ?? 0;
 
             let singleMarker = null; // Track single marker for description
 
