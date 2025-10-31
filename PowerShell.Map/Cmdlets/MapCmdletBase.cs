@@ -148,4 +148,28 @@ public abstract class MapCmdletBase : PSCmdlet
             _ => null // Unknown color = use default teardrop marker
         };
     }
+
+    /// <summary>
+    /// Convert Enable3D/Disable3D switches to nullable bool with validation
+    /// </summary>
+    /// <param name="enable3D">Enable3D switch parameter value</param>
+    /// <param name="disable3D">Disable3D switch parameter value</param>
+    /// <param name="result">Resulting bool? value (true/false/null)</param>
+    /// <returns>True if parameters are valid, false if both are specified (error written)</returns>
+    protected bool TryGetEnable3DParameter(bool enable3D, bool disable3D, out bool? result)
+    {
+        if (enable3D && disable3D)
+        {
+            WriteError(new ErrorRecord(
+                new ArgumentException("Cannot specify both -Enable3D and -Disable3D"),
+                "MutuallyExclusiveParameters",
+                ErrorCategory.InvalidArgument,
+                null));
+            result = null;
+            return false;
+        }
+        
+        result = enable3D ? true : disable3D ? false : null;
+        return true;
+    }
 }

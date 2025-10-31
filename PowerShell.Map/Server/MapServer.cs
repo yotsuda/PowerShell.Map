@@ -277,8 +277,21 @@ public class MapServer
             var displayLat = zoom.HasValue ? fromLat : centerLat;
             var displayLon = zoom.HasValue ? fromLon : centerLon;
             
-            // If parameters are not specified, preserve current map state
-            var adjustedZoom = zoom ?? _currentState.Zoom;
+            // Calculate bounds for route
+            var latDiff = Math.Abs(fromLat - toLat);
+            var lonDiff = Math.Abs(fromLon - toLon);
+            
+            // If zoom not specified, calculate optimal zoom to fit both From and To locations
+            int calculatedZoom;
+            if (zoom.HasValue)
+            {
+                calculatedZoom = zoom.Value;
+            }
+            else
+            {
+                // Always calculate optimal zoom for routes (don't preserve previous zoom)
+                calculatedZoom = CalculateOptimalZoom(latDiff, lonDiff);
+            }
             var adjustedBearing = bearing ?? _currentState.Bearing;
             var adjustedPitch = pitch ?? _currentState.Pitch;
             var adjustedEnable3D = enable3D ?? _currentState.Enable3D;
@@ -293,7 +306,7 @@ public class MapServer
             {
                 Latitude = displayLat,
                 Longitude = displayLon,
-                Zoom = adjustedZoom,
+                Zoom = calculatedZoom,
                 RouteCoordinates = routeCoordinates,
                 RouteColor = color ?? "#0066ff",
                 RouteWidth = width,

@@ -488,8 +488,12 @@ public static class MapHtml
             let leftClickCount = 0;
             let leftClickTimer = null;
             let lastLeftClickEvent = null;
-            
             map.getCanvas().addEventListener('click', (e) => {
+                // Ignore clicks on map controls (attribution, etc.)
+                if (e.target.closest('.maplibregl-ctrl')) {
+                    return;
+                }
+                
                 // Store event for zoom operation
                 lastLeftClickEvent = e;
                 leftClickCount++;
@@ -524,6 +528,11 @@ public static class MapHtml
             let rightClickTimer = null;
             
             map.getCanvas().addEventListener('contextmenu', (e) => {
+                // Ignore clicks on map controls
+                if (e.target.closest('.maplibregl-ctrl')) {
+                    return;
+                }
+                
                 e.preventDefault(); // Prevent context menu
                 
                 rightClickCount++;
@@ -747,19 +756,14 @@ public static class MapHtml
             
             // Update toggle switch UI
             const toggleSwitch = document.getElementById('toggleSwitch');
-            if (is3DEnabled) {
-                toggleSwitch.classList.add('active');
-            } else {
-                toggleSwitch.classList.remove('active');
-            }
+            toggleSwitch.classList.toggle('active', is3DEnabled);
             
             // Add or remove 3D features
-            if (state.enable3D) {
+            if (is3DEnabled) {
                 if (!map.getLayer('3d-buildings')) {
                     enable3DFeatures();
                 }
             } else {
-                // Remove all 3D layers using the remove3DFeatures function
                 remove3DFeatures();
             }
 

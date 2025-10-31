@@ -147,26 +147,7 @@ public class StartOpenStreetMapTourCmdlet : MapCmdletBase
         {
             var server = MapServer.Instance;
             
-            // Convert Enable3D/Disable3D switches to nullable bool
-            bool? enable3D = null;
-            if (Enable3D && Disable3D)
-            {
-                WriteError(new ErrorRecord(
-                    new ArgumentException("Cannot specify both -Enable3D and -Disable3D"),
-                    "MutuallyExclusiveParameters",
-                    ErrorCategory.InvalidArgument,
-                    null));
-                return;
-            }
-            else if (Enable3D)
-            {
-                enable3D = true;
-            }
-            else if (Disable3D)
-            {
-                enable3D = false;
-            }
-            // If neither is specified, enable3D remains null (preserve current state)
+            if (!TryGetEnable3DParameter(Enable3D, Disable3D, out bool? enable3D)) return;
 
             WriteVerbose($"Starting map tour with {_tourLocations.Count} locations");
             for (int i = 0; i < _tourLocations.Count; i++)

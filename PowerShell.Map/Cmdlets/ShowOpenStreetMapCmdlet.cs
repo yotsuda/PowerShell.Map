@@ -92,26 +92,6 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
 
     private readonly List<MapMarker> _pipelineMarkers = [];
 
-    /// <summary>
-    /// Convert Enable3D/Disable3D switches to nullable bool
-    /// </summary>
-    /// <returns>true if Enable3D, false if Disable3D, null if neither (preserve state)</returns>
-    private bool? GetEnable3DParameter()
-    {
-        if (Enable3D && Disable3D)
-        {
-            WriteError(new ErrorRecord(
-                new ArgumentException("Cannot specify both -Enable3D and -Disable3D"),
-                "MutuallyExclusiveParameters",
-                ErrorCategory.InvalidArgument,
-                null));
-            return null;
-        }
-        
-        if (Enable3D) return true;
-        if (Disable3D) return false;
-        return null; // Preserve current state
-    }
 
     protected override void ProcessRecord()
     {
@@ -119,8 +99,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
         {
             var server = MapServer.Instance;
             
-            bool? enable3D = GetEnable3DParameter();
-            if (Enable3D && Disable3D) return; // Error already written
+            if (!TryGetEnable3DParameter(Enable3D, Disable3D, out bool? enable3D)) return;
 
             if (ParameterSetName == PipelineSet && !string.IsNullOrEmpty(Latitude) && !string.IsNullOrEmpty(Longitude))
             {
@@ -443,8 +422,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
             {
                 var server = MapServer.Instance;
                 
-                bool? enable3D = GetEnable3DParameter();
-                if (Enable3D && Disable3D) return; // Error already written
+                if (!TryGetEnable3DParameter(Enable3D, Disable3D, out bool? enable3D)) return;
                 
                 // 成功したマーカーのみを地図に表示対象とする
                 var successMarkers = _pipelineMarkers.Where(m => m.Status == "Success").ToArray();
