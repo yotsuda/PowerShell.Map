@@ -463,13 +463,44 @@ public static class MapHtml
             map.on('moveend', checkMarkerVisibility);
             map.on('drag', checkMarkerVisibility);
             
-            // Close description when clicking on map (not on marker)
-            map.on('click', () => {
-                const descriptionOverlay = document.getElementById('location-description');
-                descriptionOverlay.classList.remove('visible');
-                currentDescriptionMarker = null;
-            });
+            // Disable default double-click zoom to implement custom zoom behavior
+            map.doubleClickZoom.disable();
             
+            // Left double-click to zoom in
+            let leftClickCount = 0;
+            let leftClickTimer = null;
+            let lastLeftClickEvent = null;
+            
+            map.getCanvas().addEventListener('click', (e) => {
+                // Store event for zoom operation
+                lastLeftClickEvent = e;
+                leftClickCount++;
+                
+                if (leftClickCount === 1) {
+                    leftClickTimer = setTimeout(() => {
+                        leftClickCount = 0;
+                        // Single click - close description
+                        const descriptionOverlay = document.getElementById('location-description');
+                        descriptionOverlay.classList.remove('visible');
+                        currentDescriptionMarker = null;
+                    }, 300); // Reset after 300ms
+                } else if (leftClickCount === 2) {
+                    clearTimeout(leftClickTimer);
+                    leftClickCount = 0;
+                    
+                    // Zoom in centered on mouse cursor position
+                    const currentZoom = map.getZoom();
+                    const mousePosition = [lastLeftClickEvent.clientX, lastLeftClickEvent.clientY];
+                    const lngLat = map.unproject(mousePosition);
+                    
+                    map.easeTo({
+                        around: lngLat,
+                        zoom: currentZoom + 1,
+                        duration: 300
+                    });
+                    debugLog('Left double-click: Zoom in to ' + (currentZoom + 1).toFixed(1) + ' at [' + lngLat.lng.toFixed(4) + ', ' + lngLat.lat.toFixed(4) + ']');
+                }
+            });
             // Right double-click to zoom out
             let rightClickCount = 0;
             let rightClickTimer = null;
@@ -501,7 +532,6 @@ public static class MapHtml
                 }
             });
             
-            // Close description when clicking on map (not on marker)
             // 3D toggle button handler
             document.getElementById('toggle3d').addEventListener('click', toggle3DBuildings);
         }
