@@ -8,14 +8,9 @@ Locale: en-US
 
 # PowerShell.Map Module
 ## Description
-PowerShell.Map is a module for displaying interactive 2D/3D maps using OpenStreetMap and MapLibre GL JS. This module provides cmdlets to: - Display interactive maps in your web browser with 2D or 3D visualization - Add markers to maps with customizable labels, colors, and descriptions - Display clickable location descriptions with emoji support - Calculate and display routes between locations with multiple routing profiles (driving, walking, cycling) - Create animated tours that visit multiple locations sequentially
-- Support multiple input formats (place names, coordinates, CSV files, structured hashtables)
-- Geocode location names using the Nominatim API
-- Route calculation using the OSRM API
-- 3D terrain and building visualization
-- Customizable camera angles (bearing and pitch) for dramatic 3D views
-
-The module runs a local HTTP server on port 8765 to serve the interactive map interface. All cmdlets support structured location objects with optional metadata (descriptions, labels, colors) for rich, interactive map experiences.
+Displays interactive 2D/3D maps using OpenStreetMap and MapLibre GL JS in a browser. Key Features: - Display maps with markers (place names or coordinates) - Calculate and display routes (driving/walking/cycling) - Create animated tours visiting multiple locations - 3D terrain and building visualization - Local HTTP server on port 8765 APIs Used: - Geocoding: Nominatim API (1 req/sec limit)
+- Routing: OSRM API
+- Terrain: AWS Terrarium tiles
 
 ## PowerShell.Map Cmdlets
 ### [Show-OpenStreetMap](Show-OpenStreetMap.md)

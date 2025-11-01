@@ -1,6 +1,6 @@
 ---
 external help file: PowerShell.Map.dll-Help.xml
-Module Name: powerShell.Map
+Module Name: PowerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
 schema: 2.0.0
 ---
@@ -13,96 +13,56 @@ Displays a route between two locations on an interactive map.
 ## SYNTAX
 
 ```
-Show-OpenStreetMapRoute [-From] <Object> [-To] <Object> [-Color <String>] [-Width <Int32>] [-Zoom <Int32>]
- [-Duration <Double>] [-Profile <String>] [-Enable3D] [-Bearing <Double>] [-Pitch <Double>]
+Show-OpenStreetMapRoute -From <Object> -To <Object> [-Color <String>] [-Width <Int32>] [-Zoom <Int32>]
+ [-Duration <Double>] [-Profile <String>] [-Enable3D] [-Disable3D] [-Bearing <Double>] [-Pitch <Double>]
  [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Show-OpenStreetMapRoute cmdlet displays a calculated route between two locations on an interactive map in your default web browser. Routes are calculated using the OSRM (Open Source Routing Machine) API. Locations can be specified as place names (using geocoding) or as coordinate strings.
+Calculates and displays route between two locations using OSRM API. Locations: place names (auto-geocoded) or coordinates. Auto-fits bounds unless -Zoom specified. Use Description in From/To hashtables to provide context at start/end points.
 
 ## EXAMPLES
 
-### Example 1: Basic route calculation
+### Example 1: Basic route
+
 ```powershell
-# By place names
 Show-OpenStreetMapRoute -From Tokyo -To Osaka
+```
 
-# By coordinates
-Show-OpenStreetMapRoute -From "35.6586,139.7454" -To "34.6937,135.5023"
+### Example 2: With routing profile and styling
 
-# With routing profile and styling
+```powershell
 Show-OpenStreetMapRoute -From Tokyo -To Osaka -Profile walking -Color "#ff0000" -Width 6
 ```
 
-Calculates route using place names (geocoded) or coordinates. Profile: driving (default), walking, cycling.
+### Example 3: With descriptions (important for AI-assisted display)
 
-### Example 2: Route with descriptions
 ```powershell
 Show-OpenStreetMapRoute `
-    -From @{ Location = "Tokyo"; Description = "Starting point" } `
-    -To @{ Location = "Osaka"; Description = "Destination" }
+    -From @{ Location = "Tokyo Station"; Description = "🚉 Start point`nMajor railway hub" } `
+    -To @{ Location = "Kyoto Station"; Description = "🎯 Destination`nGateway to temples" } `
+    -Profile driving
 ```
-
-Locations accept hashtables with Description property for clickable markers.
-
-### Example 3: 3D terrain route
-```powershell
-Show-OpenStreetMapRoute -From "Tokyo" -To "Mount Fuji" -Enable3D -Pitch 70 -Profile walking
-```
-
-3D visualization with terrain. Pitch controls camera tilt, Bearing controls rotation.
 
 ## PARAMETERS
 
-### -From
-Specifies the starting location for the route. This parameter accepts two formats:
-
-1. Simple string: Place name (e.g., "Tokyo") or coordinate string (e.g., "35.6586,139.7454")
-2. Hashtable with optional metadata:
-   - Location (required): Place name or coordinates
-   - Description (optional): Text to display when the marker is clicked
-
-Example with description:
-Show-OpenStreetMapRoute -From @{ Location = "Tokyo"; Description = "?? Starting point" } -To "Osaka"
+### -Bearing
+Camera rotation in degrees: 0=North, 90=East, 180=South, 270=West. STATEFUL: If not specified, the map retains its current bearing from previous commands.
 
 ```yaml
-Type: Object
+Type: Double
 Parameter Sets: (All)
 Aliases:
 
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -To
-Specifies the destination location for the route. This parameter accepts two formats:
-
-1. Simple string: Place name (e.g., "Osaka") or coordinate string (e.g., "34.6937,135.5023")
-2. Hashtable with optional metadata:
-   - Location (required): Place name or coordinates
-   - Description (optional): Text to display when the marker is clicked
-
-Example with description:
-Show-OpenStreetMapRoute -From "Tokyo" -To @{ Location = "Osaka"; Description = "?? Destination" }
-
-```yaml
-Type: Object
-Parameter Sets: (All)
-Aliases:
-
-Required: True
-Position: 1
-Default value: None
+Required: False
+Position: Named
+Default value: 0
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Color
-Specifies the color of the route line. Can be a color name or hex color code (e.g., "#ff0000" for red). Default is "#0066ff" (blue).
+Route line color: color name or hex code (e.g., "red" or "#FF0000"). Default: #0066ff. Supported colors: red, blue, green, orange, yellow, violet, purple, indigo, pink, cyan, teal, black, grey, gray, white, silver, darkred, darkgreen, darkblue, lightred, lightgreen, lightblue, navy, lime, magenta, maroon, olive, brown, gold, crimson, coral, turquoise, skyblue, lavender, plum, salmon, khaki. Hex codes: #rgb (e.g., #F00) or #rrggbb (e.g., #FF0000).
 
 ```yaml
 Type: String
@@ -116,28 +76,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Width
-Specifies the width of the route line in pixels (1 to 10). Default is 4.
+### -Disable3D
+Forces 2D flat view. Disables 3D terrain and building rendering, locks pitch to 0. **STATEFUL**: If neither -Enable3D nor -Disable3D is specified, the map retains its current 3D/2D state from previous commands.
 
 ```yaml
-Type: Int32
+Type: SwitchParameter
 Parameter Sets: (All)
 Aliases:
-
-Required: False
-Position: Named
-Default value: 4
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ProgressAction
-Specifies how PowerShell responds to progress updates generated by the cmdlet. Valid values are: Continue, Ignore, Inquire, SilentlyContinue, Stop, Suspend.
-
-```yaml
-Type: ActionPreference
-Parameter Sets: (All)
-Aliases: proga
 
 Required: False
 Position: Named
@@ -161,50 +106,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Zoom
-Specifies the zoom level (1 to 19) for the map view. When specified, displays the start point at the requested zoom level. When omitted, automatically fits bounds to show the entire route. Lower numbers show a larger area, higher numbers show more detail.
-
-```yaml
-Type: Int32
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Bearing
-Specifies the camera bearing (rotation) in degrees (0-360). The bearing represents the compass direction the camera is pointing:
-- 0 degrees = North (default)
-- 90 degrees = East
-- 180 degrees = South
-- 270 degrees = West
-
-This parameter is useful for orienting the view of 3D terrain features along the route.
-
-```yaml
-Type: Double
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: 0
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Enable3D
-Enables 3D visualization of buildings and terrain along the route. When enabled:
-- Buildings are rendered as 3D extruded shapes (at zoom level 14 and above)
-- Terrain elevation data is displayed with appropriate exaggeration for visibility
-- Default pitch angle is set to 60 degrees for optimal 3D viewing
-- The route line is rendered with elevation awareness
-
-The 3D view can be toggled on/off using the browser interface, and the camera view can be reset using the "Reset View" button.
+Enables 3D buildings (zoom 14+) and terrain with dynamic exaggeration (0.3x-2.0x). Auto-sets pitch=60. **STATEFUL**: If neither -Enable3D nor -Disable3D is specified, the map retains its current 3D/2D state from previous commands.
 
 ```yaml
 Type: SwitchParameter
@@ -218,13 +121,31 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Pitch
-Specifies the camera pitch (tilt angle) in degrees (0-85). The pitch controls how much the camera is tilted:
-- 0 degrees = Top-down view (default for 2D maps)
-- 60 degrees = Default for 3D view (automatically set when -Enable3D is used without explicit -Pitch)
-- 85 degrees = Almost horizontal view
+### -From
+Specifies the starting location for the route. This parameter accepts two formats:
 
-Higher pitch values provide a more dramatic 3D perspective of the route, especially in mountainous terrain. This parameter is most useful when -Enable3D is enabled.
+1. Simple string: Place name (e.g., "Tokyo") or coordinate string (e.g., "35.6586,139.7454")
+2. Hashtable with optional metadata:
+   - Location (required): Place name or coordinates
+   - Description (optional): Text to display when the marker is clicked
+
+Example with description:
+Show-OpenStreetMapRoute -From @{ Location = "Tokyo"; Description = "?? Starting point" } -To "Osaka"
+
+```yaml
+Type: Object
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Pitch
+Camera tilt in degrees (0-85): 0=top-down, 60=default for 3D, 85=almost horizontal. **STATEFUL**: If not specified, the map retains its current pitch from previous commands.
 
 ```yaml
 Type: Double
@@ -239,12 +160,7 @@ Accept wildcard characters: False
 ```
 
 ### -Profile
-Specifies the routing profile to use for route calculation. Valid values are:
-- "driving" (default): Car routing with road speed limits
-- "walking": Pedestrian routing with footpaths
-- "cycling": Bicycle routing with bike lanes
-
-Different profiles may produce different routes based on allowed roads and paths.
+Routing profile for route calculation. Default: driving. **Valid values**: driving, walking, cycling (case-insensitive). Different profiles produce different routes based on allowed roads and paths.
 
 ```yaml
 Type: String
@@ -254,6 +170,74 @@ Aliases:
 Required: False
 Position: Named
 Default value: driving
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProgressAction
+Specifies how PowerShell responds to progress updates generated by the cmdlet. Valid values are: Continue, Ignore, Inquire, SilentlyContinue, Stop, Suspend.
+
+```yaml
+Type: ActionPreference
+Parameter Sets: (All)
+Aliases: proga
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -To
+Specifies the destination location for the route. This parameter accepts two formats:
+
+1. Simple string: Place name (e.g., "Osaka") or coordinate string (e.g., "34.6937,135.5023")
+2. Hashtable with optional metadata:
+   - Location (required): Place name or coordinates
+   - Description (optional): Text to display when the marker is clicked
+
+Example with description:
+Show-OpenStreetMapRoute -From "Tokyo" -To @{ Location = "Osaka"; Description = "?? Destination" }
+
+```yaml
+Type: Object
+Parameter Sets: (All)
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Width
+Specifies the width of the route line in pixels (1 to 10). Default is 4.
+
+```yaml
+Type: Int32
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 4
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Zoom
+Specifies the zoom level (1 to 19) for the map view. When specified, displays the start point at the requested zoom level. When omitted, automatically fits bounds to show the entire route. Lower numbers show a larger area, higher numbers show more detail.
+
+```yaml
+Type: Int32
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -272,14 +256,20 @@ This cmdlet does not accept pipeline input.
 This cmdlet does not generate any output.
 
 ## NOTES
-- Routes are calculated using the OSRM API (http://project-osrm.org/)
-- Geocoding uses the Nominatim API (https://nominatim.openstreetmap.org/)
-- The map server runs on http://localhost:8765/
-- When -Zoom is omitted, the map automatically fits bounds to show the entire route
-- Route calculation supports multiple profiles: driving (default), walking, and cycling
-- 3D terrain data is sourced from AWS Terrarium tiles when -Enable3D is used
-- 3D buildings are available at zoom level 14 and above in supported areas
-- The browser tab is automatically opened when the server starts
+
+**Stateful Behavior**
+- If not specified, Bearing, Pitch and 3D mode state is preserved. To reset the view, explicitly specify the desired values.
+
+**Routing and APIs**
+- Routes: Calculated using OSRM API (http://project-osrm.org/)
+- Geocoding: Nominatim API (https://nominatim.openstreetmap.org/)
+- Map server: http://localhost:8765/
+- Auto-fit: When -Zoom omitted, map fits bounds to show entire route
+- Browser: Tab opens automatically when server starts
+
+**3D Features**
+- 3D terrain data: AWS Terrarium tiles (when -Enable3D used)
+- 3D buildings: Available at zoom level 14+ in supported areas
 
 ## RELATED LINKS
 

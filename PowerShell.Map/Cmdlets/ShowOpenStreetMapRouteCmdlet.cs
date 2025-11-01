@@ -3,6 +3,7 @@ using System.Management.Automation;
 using System.Text.Json;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
+using PowerShell.Map.Validation;
 
 namespace PowerShell.Map.Cmdlets;
 
@@ -31,6 +32,7 @@ public class ShowOpenStreetMapRouteCmdlet : MapCmdletBase
     /// Route line color (color name or hex code, default: #0066ff)
     /// </summary>
     [Parameter]
+    [ValidateColor]
     public string Color { get; set; } = "#0066ff";
 
     /// <summary>

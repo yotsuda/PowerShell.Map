@@ -1,4 +1,4 @@
-﻿---
+---
 external help file: PowerShell.Map.dll-Help.xml
 Module Name: PowerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
@@ -14,96 +14,56 @@ Creates an animated tour that visits multiple locations sequentially on an inter
 
 ### Simple
 ```
-Start-OpenStreetMapTour [-Location] <String[]> [-Zoom <Int32>] [-PauseTime <Double>] [-Duration <Double>]
- [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Start-OpenStreetMapTour -Location <String[]> [-Zoom <Int32>] [-PauseTime <Double>] [-Duration <Double>]
+ [-Enable3D] [-Disable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>]
+ [<CommonParameters>]
 ```
 
 ### WithDescription
 ```
 Start-OpenStreetMapTour -Locations <Object[]> [-Zoom <Int32>] [-PauseTime <Double>] [-Duration <Double>]
- [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+ [-Enable3D] [-Disable3D] [-Bearing <Double>] [-Pitch <Double>] [-ProgressAction <ActionPreference>]
+ [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Start-OpenStreetMapTour cmdlet creates an animated tour that smoothly transitions between multiple locations on an interactive map. The map camera flies from one location to the next with smooth zoom animations, pausing at each location before continuing to the next. This cmdlet is perfect for creating visual presentations or exploring multiple locations in sequence.
+Creates animated tour smoothly flying between locations. Pauses at each location before continuing. Blocks PowerShell until complete. Perfect for presentations. Use Locations array with Description for detailed information at each stop.
 
 ## EXAMPLES
 
-### Example 1: Basic tour
+### Example 1: Simple tour
+
 ```powershell
-# Simple location names
 Start-OpenStreetMapTour Tokyo, Osaka, Kyoto
-
-# By coordinates
-Start-OpenStreetMapTour -Location "35.6762,139.6503", "34.6937,135.5023", "35.0116,135.7681"
-
-# With timing control
-Start-OpenStreetMapTour Paris, London, Berlin -Duration 3 -PauseTime 2.5 -Zoom 12
-
-# From pipeline or CSV
-"New York", "Chicago", "Los Angeles" | Start-OpenStreetMapTour
-Import-Csv tour.csv | ForEach-Object { $_.Location } | Start-OpenStreetMapTour
 ```
 
-Animated tour with smooth transitions. Duration controls animation speed, PauseTime controls pause at each location.
+### Example 2: With timing control
 
-### Example 2: Tour with descriptions
+```powershell
+Start-OpenStreetMapTour Paris, London, Berlin -Duration 2 -PauseTime 1.5 -Zoom 12
+```
+
+### Example 3: Tour with detailed descriptions (important for AI-guided tours)
+
 ```powershell
 $tourStops = @(
-    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan with 14 million people" }
-    @{ Location = "Mount Fuji"; Description = "🗻 Japan's tallest mountain at 3,776m" }
-    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital with over 2,000 temples" }
+    @{ Location = "Tokyo Tower"; Description = "🗼 Tokyo Tower`nHeight: 332.9m`nBuilt: 1958" }
+    @{ Location = "Mount Fuji"; Description = "🗻 Mt. Fuji`nHeight: 3,776m`nUNESCO World Heritage" }
+    @{ Location = "Kyoto"; Description = "⛩️ Kyoto`n2000+ temples and shrines" }
 )
-Start-OpenStreetMapTour -Locations $tourStops -Duration 2 -PauseTime 3
+Start-OpenStreetMapTour -Locations $tourStops -Duration 1.5 -PauseTime 2
 ```
 
-Locations parameter accepts hashtables with Description property.
+### Example 4: 3D mountain tour
 
-### Example 3: 3D mountain tour
 ```powershell
-$mountains = @(
-    @{ Location = "Mount Fuji"; Description = "🗻 3,776m" }
-    @{ Location = "45.9763,7.6586"; Description = "🏔️ Matterhorn 4,478m" }
-)
-Start-OpenStreetMapTour -Locations $mountains -Enable3D -Pitch 70 -Zoom 12
+Start-OpenStreetMapTour -Locations $tourStops -Enable3D -Pitch 70 -Zoom 12
 ```
-
-3D terrain visualization with elevated camera angle.
 
 ## PARAMETERS
 
-### -Location
-Specifies an array of locations to visit in the tour. Each location can be a place name (e.g., "Tokyo") or a coordinate string in "latitude,longitude" format (e.g., "35.6586,139.7454"). The tour visits locations in the order specified.
-
-```yaml
-Type: String[]
-Parameter Sets: Simple
-Aliases:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Zoom
-Specifies the zoom level for each location (1 to 19). Lower numbers show a larger area, higher numbers show more detail. Default is 13.
-
-```yaml
-Type: Int32
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: 13
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PauseTime
-Specifies how long to pause at each location in seconds (0.5 to 30.0). This is the time the map stays still at each location before transitioning to the next. Default is 2.0 seconds.
+### -Bearing
+Camera rotation in degrees: 0=North, 90=East, 180=South, 270=West. **STATEFUL**: If not specified, the map retains its current bearing from previous commands. Applies to all tour stops.
 
 ```yaml
 Type: Double
@@ -112,7 +72,22 @@ Aliases:
 
 Required: False
 Position: Named
-Default value: 2.0
+Default value: 0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Disable3D
+Forces 2D flat view for all tour stops. Disables 3D terrain and building rendering, locks pitch to 0. **STATEFUL**: If neither -Enable3D nor -Disable3D is specified, the map retains its current 3D/2D state from previous commands.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -132,50 +107,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ProgressAction
-Specifies how PowerShell responds to progress updates generated by the cmdlet. Valid values are: Continue, Ignore, Inquire, SilentlyContinue, Stop, Suspend.
-
-```yaml
-Type: ActionPreference
-Parameter Sets: (All)
-Aliases: proga
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Bearing
-Specifies the camera bearing (rotation) in degrees (0-360) for all locations in the tour. The bearing represents the compass direction the camera is pointing:
-- 0 degrees = North (default)
-- 90 degrees = East
-- 180 degrees = South
-- 270 degrees = West
-
-This parameter applies to all tour stops. Combining this with -Pitch creates a consistent viewing angle throughout the tour.
-
-```yaml
-Type: Double
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: 0
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Enable3D
-Enables 3D visualization of buildings and terrain for all locations in the tour. When enabled:
-- Buildings are rendered as 3D extruded shapes (at zoom level 14 and above)
-- Terrain elevation data is displayed with appropriate exaggeration for visibility
-- Default pitch angle is set to 60 degrees for optimal 3D viewing
-- All tour stops maintain the same 3D perspective
-
-The 3D view can be toggled on/off using the browser interface during the tour.
+Enables 3D buildings (zoom 14+) and terrain with dynamic exaggeration (0.3x-2.0x). Auto-sets pitch=60. Applies to all tour stops. **STATEFUL**: If neither -Enable3D nor -Disable3D is specified, the map retains its current 3D/2D state from previous commands.
 
 ```yaml
 Type: SwitchParameter
@@ -186,6 +119,21 @@ Required: False
 Position: Named
 Default value: False
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Location
+Specifies an array of locations to visit in the tour. Each location can be a place name (e.g., "Tokyo") or a coordinate string in "latitude,longitude" format (e.g., "35.6586,139.7454"). The tour visits locations in the order specified.
+
+```yaml
+Type: String[]
+Parameter Sets: Simple
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -213,13 +161,23 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Pitch
-Specifies the camera pitch (tilt angle) in degrees (0-85) for all locations in the tour. The pitch controls how much the camera is tilted:
-- 0 degrees = Top-down view (default for 2D maps)
-- 60 degrees = Default for 3D view (automatically set when -Enable3D is used without explicit -Pitch)
-- 85 degrees = Almost horizontal view
+### -PauseTime
+Specifies how long to pause at each location in seconds (0.5 to 30.0). This is the time the map stays still at each location before transitioning to the next. Default is 2.0 seconds.
 
-This parameter applies to all tour stops, creating a consistent viewing angle. Higher pitch values provide a more dramatic 3D perspective.
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 2.0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Pitch
+Camera tilt in degrees (0-85): 0=top-down, 60=default for 3D, 85=almost horizontal. **STATEFUL**: If not specified, the map retains its current pitch from previous commands. Applies to all tour stops.
 
 ```yaml
 Type: Double
@@ -229,6 +187,36 @@ Aliases:
 Required: False
 Position: Named
 Default value: 0
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ProgressAction
+Specifies how PowerShell responds to progress updates generated by the cmdlet. Valid values are: Continue, Ignore, Inquire, SilentlyContinue, Stop, Suspend.
+
+```yaml
+Type: ActionPreference
+Parameter Sets: (All)
+Aliases: proga
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Zoom
+Specifies the zoom level for each location (1 to 19). Lower numbers show a larger area, higher numbers show more detail. Default is 13.
+
+```yaml
+Type: Int32
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: 13
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -247,13 +235,19 @@ You can pipe an array of location strings to this cmdlet.
 Returns a MapMarker object for each location visited, including Step, TotalSteps, Location, Latitude, Longitude, Label, Status, and GeocodingSource properties.
 
 ## NOTES
-- The tour runs sequentially and blocks until all locations have been visited
-- Each location is geocoded if it's a place name
-- Coordinates can be specified in "latitude,longitude" format
-- The total time for the tour is: (Duration + PauseTime) × Number of Locations
-- The map server runs on http://localhost:8765/
-- Geocoding uses the Nominatim API with a 1 request per second rate limit
-- Failed locations are skipped with a warning, and the tour continues
+
+**Stateful Behavior**
+- If not specified, Bearing, Pitch and 3D mode state is preserved. To reset the view, explicitly specify the desired values.
+
+**Tour Behavior**
+- Tours run sequentially and block PowerShell until complete
+- Place names are auto-geocoded; coordinates use "latitude,longitude" format
+- Total tour time: (Duration + PauseTime) × Number of Locations
+- Failed locations are skipped with a warning; tour continues
+
+**Server and API**
+- Map server: http://localhost:8765/
+- Geocoding: Nominatim API (rate limit: 1 request per second)
 
 ## RELATED LINKS
 

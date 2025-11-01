@@ -1,6 +1,6 @@
 ---
 external help file: PowerShell.Map.dll-Help.xml
-Module Name: powerShell.Map
+Module Name: PowerShell.Map
 online version: https://github.com/yotsuda/PowerShell.Map
 schema: 2.0.0
 ---
@@ -14,122 +14,77 @@ Displays an interactive 2D/3D map using OpenStreetMap and MapLibre GL JS in the 
 
 ### SimpleLocation
 ```
-Show-OpenStreetMap [[-Location] <String[]>] [-Zoom <Int32>] [-Duration <Double>] [-Enable3D]
+Show-OpenStreetMap [-Location <String[]>] [-Zoom <Int32>] [-Duration <Double>] [-Enable3D] [-Disable3D]
  [-Bearing <Double>] [-Pitch <Double>] [-Description <String>] [-ProgressAction <ActionPreference>]
  [<CommonParameters>]
 ```
 
 ### StructuredLocation
 ```
-Show-OpenStreetMap -Locations <Object[]> [-Zoom <Int32>] [-Duration <Double>] [-Enable3D] [-Bearing <Double>]
- [-Pitch <Double>] [-Description <String>] [-ProgressAction <ActionPreference>] [<CommonParameters>]
+Show-OpenStreetMap -Locations <Object[]> [-Zoom <Int32>] [-Duration <Double>] [-Enable3D] [-Disable3D]
+ [-Bearing <Double>] [-Pitch <Double>] [-Description <String>] [-ProgressAction <ActionPreference>]
+ [<CommonParameters>]
 ```
 
 ### Pipeline
 ```
 Show-OpenStreetMap -Latitude <String> -Longitude <String> [-Label <String>] [-Color <String>] [-Zoom <Int32>]
- [-Duration <Double>] [-Enable3D] [-Bearing <Double>] [-Pitch <Double>] [-Description <String>]
+ [-Duration <Double>] [-Enable3D] [-Disable3D] [-Bearing <Double>] [-Pitch <Double>] [-Description <String>]
  [-ProgressAction <ActionPreference>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-The Show-OpenStreetMap cmdlet displays an interactive map in your default web browser. You can specify locations using coordinates, place names (geocoding), or display multiple markers. The map is powered by OpenStreetMap and MapLibre GL JS, with a local HTTP server running on port 8765.
-
-The cmdlet supports 3D visualization of buildings and terrain when using the -Enable3D parameter. The 3D view includes dynamically scaled terrain exaggeration (0.3x to 2.0x based on zoom level) for natural-looking mountain visualization, and extruded building shapes in urban areas.
+Opens an interactive map in the default browser (http://localhost:8765/). Supports place names (auto-geocoded), coordinates, multiple markers with metadata (including clickable descriptions), 3D terrain/buildings, and CSV pipeline input. Use the Description parameter or Locations array to provide detailed information that appears when markers are clicked.
 
 ## EXAMPLES
 
-### Example 1: Basic usage
+### Example 1: Single location with description (for AI-assisted information display)
+
 ```powershell
-# Single location by name
-Show-OpenStreetMap "Tokyo Tower"
-
-# By coordinates with zoom
-Show-OpenStreetMap -Location "35.6586,139.7454" -Zoom 15
-
-# Multiple locations
-Show-OpenStreetMap -Location Tokyo, Osaka, Kyoto
+Show-OpenStreetMap "Tokyo Tower" -Description "🗼 Tokyo Tower`nHeight: 332.9m`nBuilt: 1958"
 ```
 
-Displays map using place names (geocoded), coordinates, or multiple locations as markers.
+### Example 2: Multiple markers
 
-### Example 2: Structured locations with metadata
+```powershell
+Show-OpenStreetMap Tokyo, Osaka, Kyoto
+```
+
+### Example 3: Structured locations with detailed descriptions
+
 ```powershell
 $locations = @(
-    @{ Location = "Tokyo"; Description = "🗼 Capital of Japan"; Label = "東京"; Color = "red" }
-    @{ Location = "Osaka"; Description = "🏯 Second largest city"; Label = "大阪"; Color = "blue" }
-    @{ Location = "Kyoto"; Description = "⛩️ Ancient capital"; Label = "京都"; Color = "gold" }
+    @{ Location = "Tokyo Tower"; Description = "🗼 Tokyo Tower`nHeight: 332.9m`nBuilt: 1958"; Label = "東京タワー"; Color = "red" }
+    @{ Location = "Mount Fuji"; Description = "🗻 Mt. Fuji`nHeight: 3,776m`nUNESCO World Heritage"; Label = "富士山"; Color = "blue" }
 )
 Show-OpenStreetMap -Locations $locations
 ```
 
-Displays markers with custom labels, colors, and clickable descriptions. Supports pipe-delimited strings ("Location|Label|Color") or hashtables.
-
-### Example 3: CSV pipeline
-```powershell
-Import-Csv locations.csv | Show-OpenStreetMap
-```
-
-CSV format: Latitude, Longitude, Label, Color columns. Pipeline automatically maps to marker properties.
-
 ### Example 4: 3D visualization
+
 ```powershell
 Show-OpenStreetMap "35.3606,138.7274" -Enable3D -Zoom 11 -Pitch 70 -Bearing 45
 ```
 
-Displays Mt. Fuji with 3D terrain. Pitch controls tilt (0-85°), Bearing controls rotation (0-360°).
-
 ## PARAMETERS
 
-### -Location
-Specifies one or more locations as place names or coordinate strings. Place names are geocoded using the Nominatim API. Coordinate strings should be in "latitude,longitude" format.
-
-When multiple locations are provided, they are displayed as markers on the map, and the map automatically centers and zooms to show all locations.
+### -Bearing
+Camera rotation in degrees: 0=North, 90=East, 180=South, 270=West. **STATEFUL**: If not specified, the map retains its current bearing from previous commands.
 
 ```yaml
-Type: String[]
-Parameter Sets: SimpleLocation
-Aliases:
-
-Required: False
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Zoom
-Specifies the zoom level (1 to 19). Lower numbers show a larger area, higher numbers show more detail. Default is 13.
-
-```yaml
-Type: Int32
+Type: Double
 Parameter Sets: (All)
 Aliases:
 
 Required: False
 Position: Named
-Default value: 13
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ProgressAction
-Specifies how PowerShell responds to progress updates generated by the cmdlet. Valid values are: Continue, Ignore, Inquire, SilentlyContinue, Stop, Suspend.
-
-```yaml
-Type: ActionPreference
-Parameter Sets: (All)
-Aliases: proga
-
-Required: False
-Position: Named
-Default value: None
+Default value: 0
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Color
-Specifies the marker color when using pipeline input (e.g., from Import-Csv). Available colors: red, blue, green, orange, violet, yellow, grey, black, gold.
+Marker color: color name or hex code (e.g., "red" or "#FF5733"). **Supported colors**: red, blue, green, orange, yellow, violet, purple, indigo, pink, cyan, teal, black, grey, gray, white, silver, darkred, darkgreen, darkblue, lightred, lightgreen, lightblue, navy, lime, magenta, maroon, olive, brown, gold, crimson, coral, turquoise, skyblue, lavender, plum, salmon, khaki **Hex codes**: #rgb (e.g., #F00) or #rrggbb (e.g., #FF0000)
 
 ```yaml
 Type: String
@@ -140,6 +95,67 @@ Required: False
 Position: Named
 Default value: None
 Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Description
+Text displayed when marker is clicked. Supports emoji and multi-line text (use `n for newlines). Critical for AI-assisted information display where detailed context is provided to users. For single location only (SimpleLocation parameter set).
+
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Disable3D
+Forces 2D flat view. Disables 3D terrain and building rendering, locks pitch to 0. **STATEFUL**: If neither -Enable3D nor -Disable3D is specified, the map retains its current 3D/2D state from previous commands.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Duration
+Specifies the animation duration in seconds (0.0 to 10.0) for map transitions. Set to 0 for instant movement without animation. Default is 1.0 second.
+
+```yaml
+Type: Double
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Enable3D
+Enables 3D buildings (zoom 14+) and terrain with dynamic exaggeration (0.3x-2.0x). Auto-sets pitch=60. **STATEFUL**: If neither -Enable3D nor -Disable3D is specified, the map retains its current 3D/2D state from previous commands.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -173,6 +189,38 @@ Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
+### -Location
+Place name(s) or "lat,lon" coordinate string(s). Auto-geocoded via Nominatim API. Multiple locations shown as markers with auto-fit bounds.
+
+
+```yaml
+Type: String[]
+Parameter Sets: SimpleLocation
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Locations
+Array of hashtables with properties: Location (required), Description, Label, Color (optional). For structured markers with metadata.
+
+
+```yaml
+Type: Object[]
+Parameter Sets: StructuredLocation
+Aliases:
+
+Required: True
+Position: Named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Longitude
 Specifies the longitude coordinate when using pipeline input (e.g., from Import-Csv). Must be used together with -Latitude parameter. Valid range: -180 to 180 degrees.
 
@@ -188,70 +236,8 @@ Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
-### -Duration
-Specifies the animation duration in seconds (0.0 to 10.0) for map transitions. Set to 0 for instant movement without animation. Default is 1.0 second.
-
-```yaml
-Type: Double
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Bearing
-Specifies the camera bearing (rotation) in degrees (0-360). The bearing represents the compass direction the camera is pointing:
-- 0 degrees = North (default)
-- 90 degrees = East
-- 180 degrees = South
-- 270 degrees = West
-
-This parameter is useful for orienting the view of 3D terrain features.
-
-```yaml
-Type: Double
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: 0
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Enable3D
-Enables 3D visualization of buildings and terrain. When enabled:
-- Buildings are rendered as 3D extruded shapes (at zoom level 14 and above)
-- Terrain elevation data is displayed with appropriate exaggeration for visibility
-- Default pitch angle is set to 60 degrees for optimal 3D viewing
-- Terrain exaggeration scales dynamically based on zoom level (0.3x to 2.0x)
-
-The 3D view can be toggled on/off using the browser interface, and the camera view can be reset using the "Reset View" button.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: (All)
-Aliases:
-
-Required: False
-Position: Named
-Default value: False
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Pitch
-Specifies the camera pitch (tilt angle) in degrees (0-85). The pitch controls how much the camera is tilted:
-- 0 degrees = Top-down view (default for 2D maps)
-- 60 degrees = Default for 3D view (automatically set when -Enable3D is used without explicit -Pitch)
-- 85 degrees = Almost horizontal view
-
-Higher pitch values provide a more dramatic 3D perspective, especially for mountainous terrain. This parameter is most useful when -Enable3D is enabled.
+Camera tilt in degrees (0-85): 0=top-down, 60=default for 3D, 85=almost horizontal. **STATEFUL**: If not specified, the map retains its current pitch from previous commands.
 
 ```yaml
 Type: Double
@@ -265,15 +251,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Description
-Specifies an optional description text to display for the location. When a marker is clicked on the map, this description will be shown in a draggable information box. The description supports emoji and multi-line text.
-
-This parameter is only available when using the SimpleLocation parameter set with a single location.
+### -ProgressAction
+Specifies how PowerShell responds to progress updates generated by the cmdlet. Valid values are: Continue, Ignore, Inquire, SilentlyContinue, Stop, Suspend.
 
 ```yaml
-Type: String
+Type: ActionPreference
 Parameter Sets: (All)
-Aliases:
+Aliases: proga
 
 Required: False
 Position: Named
@@ -282,29 +266,18 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Locations
-Specifies an array of structured location objects with optional metadata. Each element should be a hashtable or PSObject with the following properties:
-- Location (required): Place name or coordinate string
-- Description (optional): Text to display when the marker is clicked
-- Label (optional): Custom label for the marker (overrides default location name)
-- Color (optional): Marker color (e.g., "red", "blue", "#ff0000")
-
-Example:
-$locations = @(
-    @{ Location = "Tokyo"; Description = "Capital of Japan"; Label = "東京"; Color = "red" }
-    @{ Location = "Osaka"; Description = "Second largest city"; Color = "blue" }
-)
-Show-OpenStreetMap -Locations $locations
+### -Zoom
+Specifies the zoom level (1 to 19). Lower numbers show a larger area, higher numbers show more detail. Default is 13.
 
 ```yaml
-Type: Object[]
-Parameter Sets: StructuredLocation
+Type: Int32
+Parameter Sets: (All)
 Aliases:
 
-Required: True
+Required: False
 Position: Named
-Default value: None
-Accept pipeline input: True (ByValue)
+Default value: 13
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -322,15 +295,22 @@ You can pipe an array of hashtables containing marker information to this cmdlet
 This cmdlet outputs MapMarker objects containing information about the displayed locations, including coordinates, labels, geocoding status, and source information.
 
 ## NOTES
-- The map server runs on http://localhost:8765/
-- Geocoding uses the Nominatim API (https://nominatim.openstreetmap.org/)
-- Nominatim has a usage policy of 1 request per second
-- The map updates in real-time when you run the cmdlet multiple times
-- The browser tab is automatically opened when the server starts
-- 3D terrain data is sourced from AWS Terrarium tiles (https://registry.opendata.aws/terrain-tiles/)
-- 3D buildings are available at zoom level 14 and above in supported areas
-- Terrain exaggeration scales dynamically: 0.3x (urban areas) to 2.0x (mountain regions)
-- The 3D toggle and camera reset controls are available in the browser interface
+
+**Stateful Behavior**
+- If not specified, Bearing, Pitch and 3D mode state is preserved. To reset the view, explicitly specify the desired values.
+
+**Server and API**
+- Map server runs on http://localhost:8765/
+- Geocoding uses Nominatim API (https://nominatim.openstreetmap.org/)
+- Nominatim rate limit: 1 request per second
+- Browser tab opens automatically when server starts
+- Map updates in real-time when you run commands multiple times
+
+**3D Features**
+- 3D terrain data: AWS Terrarium tiles (https://registry.opendata.aws/terrain-tiles/)
+- 3D buildings: Available at zoom level 14+ in supported areas
+- Terrain exaggeration: Dynamic scaling from 0.3x (urban) to 2.0x (mountains)
+- Browser controls: 3D toggle and camera reset available
 
 ## RELATED LINKS
 

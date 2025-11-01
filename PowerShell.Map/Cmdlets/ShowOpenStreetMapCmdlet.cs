@@ -2,6 +2,7 @@
 using System.Management.Automation;
 using PowerShell.Map.Helpers;
 using PowerShell.Map.Server;
+using PowerShell.Map.Validation;
 
 namespace PowerShell.Map.Cmdlets;
 
@@ -36,6 +37,7 @@ public class ShowOpenStreetMapCmdlet : MapCmdletBase
     public string? Label { get; set; }
 
     [Parameter(ParameterSetName = PipelineSet, ValueFromPipelineByPropertyName = true)]
+    [ValidateColor]
     public string? Color { get; set; }
 
     // 共通パラメータ
