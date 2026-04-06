@@ -2,6 +2,8 @@
 
 Interactive 2D/3D map visualization for PowerShell using MapLibre GL JS and OpenStreetMap. Although usable standalone, this module is primarily designed for Claude Desktop integration via the PowerShell.MCP module, enabling AI-powered map visualization.
 
+<img width="3840" height="2153" alt="image" src="https://github.com/user-attachments/assets/9befeb67-cd03-4812-9ce0-7d30eae94625" />
+
 ## What's New in v1.0.1
 
 Two major features have been added since v1.0.0:
